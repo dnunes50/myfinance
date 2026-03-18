@@ -1,0 +1,2474 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B0F1A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MyFinance">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="MyFinance — Controle financeiro pessoal">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<title>MyFinance — Controle Financeiro Pessoal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B0F1A;--bg2:#111827;--bg3:#1C2333;--sur:#1E2940;--sur2:#253050;
+  --acc:#6EE7B7;--acc2:#34D399;--acc-d:rgba(110,231,183,.12);--acc-d2:rgba(110,231,183,.06);
+  --blue:#60A5FA;--blue-d:rgba(96,165,250,.12);
+  --amb:#FCD34D;--amb-d:rgba(252,211,77,.12);
+  --red:#F87171;--red-d:rgba(248,113,113,.12);
+  --ora:#FB923C;--ora-d:rgba(251,146,60,.12);
+  --mut:#8B95A8;--brd:rgba(255,255,255,.08);--brd2:rgba(255,255,255,.14);
+  --txt:#E8EDF5;--txt2:#A8B3C4;--r:14px;--rs:8px
+}
+body{font-family:'Sora',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;font-size:14px}
+
+.nav{position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;background:rgba(11,15,26,.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--brd)}
+.logo{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.logo-icon{width:28px;height:28px;background:linear-gradient(135deg,var(--acc),#3B82F6);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0B0F1A}
+.logo span{color:var(--acc)}
+.nav-tabs{display:flex;gap:2px}
+.tab{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;color:var(--txt2);cursor:pointer;border:none;background:none;transition:all .15s;font-family:'Sora',sans-serif}
+.tab:hover{background:rgba(255,255,255,.06);color:var(--txt)}
+.tab.on{background:var(--acc-d);color:var(--acc)}
+.nav-right{display:flex;align-items:center;gap:8px;font-size:12px}
+.badge-live{display:flex;align-items:center;gap:5px;color:var(--acc);background:var(--acc-d);padding:4px 10px;border-radius:20px;border:1px solid rgba(110,231,183,.2)}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--acc);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.page{display:none;padding:20px;max-width:1300px;margin:0 auto}
+.page.on{display:block}
+
+.sec-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--brd)}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s;cursor:default}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ka,var(--acc));opacity:.7}
+.kpi:hover{border-color:var(--brd2)}
+.kpi-lbl{font-size:11px;font-weight:500;color:var(--mut);margin-bottom:6px}
+.kpi-val{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.kpi-sub{font-size:11px;color:var(--mut)}
+.kpi-sub.up{color:var(--acc)}.kpi-sub.dn{color:var(--red)}.kpi-sub.warn{color:var(--amb)}
+
+.card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:20px}
+.card-title{font-size:13px;font-weight:600;margin-bottom:4px}
+.card-sub{font-size:11px;color:var(--mut);margin-bottom:16px}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:700px){
+  /* Layout */
+  .g2,.g3{grid-template-columns:1fr}
+  .page{padding:14px 12px 90px}
+  .nav-tabs{display:none}
+  .nav-right .btn{display:none}
+
+  /* KPI grid — 2 cols on mobile */
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi{padding:12px 14px}
+  .kpi-val{font-size:16px}
+
+  /* Tables — horizontal scroll */
+  .tbl-wrap{border-radius:10px}
+  table{font-size:11px;min-width:520px}
+  th,td{padding:8px 10px}
+
+  /* Hide less critical columns on mobile */
+  .hide-mob{display:none}
+
+  /* Orçamento rows */
+  .orc-row{grid-template-columns:1fr 1fr!important;row-gap:4px;padding:10px 12px}
+  .orc-row .orc-lbl{grid-column:1/-1;font-size:12px}
+  .orc-row .orc-track{grid-column:1/-1}
+
+  /* Modal */
+  .modal{padding:20px 16px;margin:8px}
+  .modal h3{font-size:15px}
+  .fld-row{grid-template-columns:1fr}
+  .modal-actions{flex-direction:column-reverse;gap:8px}
+  .modal-actions .btn{width:100%;justify-content:center}
+
+  /* Alert items */
+  .al-item{flex-wrap:wrap;gap:8px}
+  .al-item > div:last-child{width:100%;display:flex;align-items:center;justify-content:space-between}
+  .al-amt{font-size:13px}
+
+  /* Filters — scrollable row */
+  .filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .filters select,.filters input{flex-shrink:0;font-size:11px;padding:5px 8px}
+
+  /* Bank items */
+  .bank-val{font-size:13px}
+
+  /* Progress card */
+  .card{padding:14px}
+
+  /* Section title */
+  .sec-title{font-size:10px}
+
+  /* Buttons */
+  .btn{font-size:12px;padding:7px 13px}
+  .btn-sm{padding:4px 8px;font-size:10px}
+
+  /* Page headers */
+  .page > div:first-child > div:first-child{font-size:16px}
+
+  /* Mobile nav */
+  .mob-menu{display:block}
+}
+
+.prog-track{background:var(--bg);border-radius:99px;height:7px;overflow:hidden;margin:8px 0}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .6s}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:none;font-family:'Sora',sans-serif}
+.btn-p{background:var(--acc);color:#0B0F1A}.btn-p:hover{background:var(--acc2)}
+.btn-s{background:transparent;color:var(--txt);border:1px solid var(--brd2)}.btn-s:hover{background:rgba(255,255,255,.06)}
+.btn-d{background:var(--red-d);color:var(--red);border:1px solid rgba(248,113,113,.2)}.btn-d:hover{background:rgba(248,113,113,.2)}
+.btn-sm{padding:5px 10px;font-size:11px}
+
+.tbl-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--brd)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);padding:10px 12px;text-align:left;border-bottom:1px solid var(--brd);background:var(--bg2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.td-amt{font-variant-numeric:tabular-nums;font-weight:600;text-align:right;white-space:nowrap}
+
+.bdg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.bdg-rec{background:var(--acc-d);color:var(--acc);border:1px solid rgba(110,231,183,.2)}
+.bdg-des{background:var(--red-d);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.bdg-inv{background:var(--blue-d);color:var(--blue);border:1px solid rgba(96,165,250,.2)}
+.bdg-ok{background:var(--acc-d);color:var(--acc)}.bdg-warn{background:var(--amb-d);color:var(--amb)}.bdg-urg{background:var(--red-d);color:var(--red)}.bdg-next{background:var(--ora-d);color:var(--ora)}
+.bdg-real{background:var(--acc-d);color:var(--acc)}.bdg-pend{background:var(--amb-d);color:var(--amb)}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.on{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--brd2);border-radius:var(--r);padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:20px}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.fld input,.fld select,.fld textarea{width:100%;background:var(--bg);border:1px solid var(--brd2);border-radius:var(--rs);padding:9px 12px;color:var(--txt);font-size:13px;font-family:'Sora',sans-serif;outline:none;transition:border-color .15s}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--acc)}
+.fld select option{background:var(--bg2)}
+.fld-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid var(--brd)}
+
+.al-item{display:flex;align-items:center;gap:12px;background:var(--sur);border:1px solid var(--brd);border-radius:var(--rs);padding:12px 16px;margin-bottom:8px;transition:border-color .15s}
+.al-item:hover{border-color:var(--brd2)}
+.al-info{flex:1}
+.al-desc{font-size:13px;font-weight:500}
+.al-date{font-size:11px;color:var(--mut)}
+.al-amt{font-size:14px;font-weight:700;text-align:right;white-space:nowrap}
+
+.bank-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--brd);margin-bottom:8px}
+.bank-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.bank-name{font-size:13px;font-weight:500;flex:1}
+.bank-sub{font-size:11px;color:var(--mut)}
+.bank-val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+
+.orc-row{display:grid;grid-template-columns:160px 1fr 60px 100px 80px;align-items:center;gap:10px;padding:10px 14px;background:var(--sur);border:1px solid var(--brd);border-radius:var(--rs);margin-bottom:8px}
+.orc-lbl{font-size:12px;font-weight:500}
+.orc-track{background:var(--bg);border-radius:99px;height:5px;overflow:hidden}
+.orc-fill{height:100%;border-radius:99px}
+.orc-pct{font-size:11px;color:var(--mut);text-align:right}
+.orc-val{font-size:12px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.orc-status{text-align:right}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.filters select,.filters input{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rs);padding:6px 10px;color:var(--txt);font-size:12px;font-family:'Sora',sans-serif;outline:none}
+.filters select:focus,.filters input:focus{border-color:var(--acc)}
+
+.toast{position:fixed;bottom:24px;right:24px;z-index:1000;background:var(--acc);color:#0B0F1A;font-size:13px;font-weight:700;padding:10px 20px;border-radius:var(--rs);opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none;font-family:'Sora',sans-serif}
+.toast.show{opacity:1;transform:translateY(0)}
+
+.empty{text-align:center;padding:40px 20px;color:var(--mut)}
+.empty-icon{font-size:32px;margin-bottom:8px}
+.empty p{font-size:13px}
+
+/* Mobile nav menu */
+/* Mobile nav shown via media query above */
+.mob-menu{display:none;position:fixed;bottom:0;left:0;right:0;z-index:300;background:rgba(11,15,26,.98);backdrop-filter:blur(20px);border-top:1px solid var(--brd);padding:6px 0 env(safe-area-inset-bottom,6px)}
+.mob-menu-items{display:flex;justify-content:space-around;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:2px;padding:0 4px}
+.mob-menu-items::-webkit-scrollbar{display:none}
+.mob-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:9px;font-weight:600;color:var(--mut);border:none;background:none;font-family:'Sora',sans-serif;transition:all .15s;min-width:52px;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.mob-item.on{color:var(--acc);background:var(--acc-d)}
+/* Mobile nav icon size */
+.mob-item-icon{font-size:16px}
+
+/* Chart cards */
+.chart-card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:20px}
+.chart-title{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:2px}
+.chart-sub{font-size:11px;color:var(--mut);margin-bottom:16px}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:700px){.chart-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ══════════ LOCK SCREEN ══════════ -->
+<div id="lockscreen" style="
+  position:fixed;inset:0;z-index:9999;
+  background:#0B0F1A;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Sora',system-ui,sans-serif;
+">
+  <div style="width:100%;max-width:360px;padding:24px">
+
+    <!-- Logo -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:36px;justify-content:center">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,#6EE7B7,#3B82F6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0B0F1A">MF</div>
+      <span style="font-size:20px;font-weight:700;letter-spacing:-.02em;color:#E8EDF5">My<span style="color:#6EE7B7">Finance</span></span>
+    </div>
+
+    <!-- Card -->
+    <div style="background:#1E2940;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:28px">
+      <div style="font-size:15px;font-weight:600;color:#E8EDF5;margin-bottom:4px">Acesso restrito</div>
+      <div style="font-size:12px;color:#8B95A8;margin-bottom:22px">Digite a senha para continuar</div>
+
+      <label style="display:block;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8B95A8;margin-bottom:6px">Senha</label>
+      <div style="position:relative;margin-bottom:6px">
+        <input
+          id="lock-input"
+          type="password"
+          placeholder="••••••••"
+          autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') tryUnlock()"
+          style="width:100%;background:#111827;border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:10px 40px 10px 12px;color:#E8EDF5;font-size:14px;font-family:'Sora',sans-serif;outline:none;transition:border-color .15s"
+          onfocus="this.style.borderColor='#6EE7B7'"
+          onblur="this.style.borderColor='rgba(255,255,255,.14)'"
+        >
+        <!-- show/hide toggle -->
+        <button onclick="togglePwd()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#8B95A8;font-size:16px;padding:0;line-height:1" title="Mostrar senha" id="eye-btn">👁</button>
+      </div>
+
+      <div id="lock-error" style="font-size:12px;color:#F87171;min-height:18px;margin-bottom:14px"></div>
+
+      <button
+        onclick="tryUnlock()"
+        style="width:100%;background:#6EE7B7;color:#0B0F1A;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;padding:11px;border:none;border-radius:8px;cursor:pointer;transition:background .15s"
+        onmouseover="this.style.background='#34D399'"
+        onmouseout="this.style.background='#6EE7B7'"
+      >Entrar →</button>
+    </div>
+
+    <div style="text-align:center;font-size:11px;color:rgba(139,149,168,.4);margin-top:20px">
+      MyFinance · Uso pessoal
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ APP (oculto até login) ══════════ -->
+<div id="app-wrapper" style="display:none">
+
+<!-- NAV -->
+<div class="nav">
+  <div class="logo"><div class="logo-icon">MF</div>My<span>Finance</span></div>
+  <div class="nav-tabs">
+    <button class="tab on" onclick="goTab('dashboard',this)">Dashboard</button>
+    <button class="tab" onclick="goTab('lancamentos',this)">Lançamentos</button>
+    <button class="tab" onclick="goTab('alertas',this)">Alertas</button>
+    <button class="tab" onclick="goTab('fluxo',this)">Fluxo Diário</button>
+    <button class="tab" onclick="goTab('patrimonio',this)">Patrimônio</button>
+    <button class="tab" onclick="goTab('orcamento',this)">Orçamento</button>
+  </div>
+  <div class="nav-right">
+    <div class="badge-live"><div class="dot"></div><span id="today-date">Carregando...</span></div>
+    <div id="gdrive-status" style="display:flex;align-items:center;gap:6px"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- DASHBOARD -->
+<div class="page on" id="pg-dashboard">
+
+  <!-- Filtro de período -->
+  <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+    <div>
+      <label style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:5px">De</label>
+      <input type="date" id="dash-de" onchange="renderDash()" style="background:var(--sur);border:1px solid var(--brd2);border-radius:var(--rs);padding:7px 12px;color:var(--txt);font-size:13px;font-family:inherit;outline:none">
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:5px">Até</label>
+      <input type="date" id="dash-ate" onchange="renderDash()" style="background:var(--sur);border:1px solid var(--brd2);border-radius:var(--rs);padding:7px 12px;color:var(--txt);font-size:13px;font-family:inherit;outline:none">
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-s btn-sm" onclick="setDashPeriod('mes')">Este mês</button>
+      <button class="btn btn-s btn-sm" onclick="setDashPeriod('mes-ant')">Mês anterior</button>
+      <button class="btn btn-s btn-sm" onclick="setDashPeriod('ytd')">YTD 2026</button>
+      <button class="btn btn-s btn-sm" onclick="setDashPeriod('tudo')">Tudo</button>
+    </div>
+    <div id="dash-periodo-label" style="font-size:12px;color:var(--acc);align-self:center;margin-left:4px"></div>
+  </div>
+
+  <div class="kpi-grid" id="kpi-dash"></div>
+  <div class="sec-title">Meta de patrimônio</div>
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:4px">
+      <div>
+        <div style="font-size:15px;font-weight:600">Progresso rumo a R$ 1.000.000</div>
+        <div id="meta-sub" style="font-size:12px;color:var(--acc);margin-top:2px"></div>
+      </div>
+      <div style="font-size:12px;color:var(--mut)" id="meta-pct"></div>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="meta-bar"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--mut)">
+      <span>R$ 0</span><span id="meta-atual"></span><span>R$ 1.000.000</span>
+    </div>
+  </div>
+  <div class="sec-title">Análise visual</div>
+
+  <!-- Charts row 1: Evolução + Receita vs Despesa -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Evolução patrimonial 2026</div>
+      <div class="chart-sub">Saldo mensal vs meta R$ 1M</div>
+      <div style="position:relative;height:220px"><canvas id="chart-evolucao"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Receitas vs Despesas</div>
+      <div class="chart-sub">Por mês — lançamentos realizados</div>
+      <div style="position:relative;height:220px"><canvas id="chart-recdes"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Charts row 2: Alocação + Orçamento -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Alocação do patrimônio</div>
+      <div class="chart-sub">Distribuição por classe de ativo</div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div style="position:relative;height:190px;flex:1"><canvas id="chart-alloc"></canvas></div>
+        <div id="alloc-legend" style="font-size:11px;line-height:2.2;flex-shrink:0;min-width:110px"></div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Top despesas por categoria</div>
+      <div class="chart-sub">No período selecionado</div>
+      <div style="position:relative;height:190px"><canvas id="chart-orc"></canvas></div>
+    </div>
+  </div>
+
+  <div class="sec-title">Lançamentos recentes</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Data</th><th>Descrição</th><th class="hide-mob">Categoria</th><th class="hide-mob">Banco</th><th>Tipo</th><th>Valor</th><th class="hide-mob">Status</th></tr></thead>
+      <tbody id="dash-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- LANÇAMENTOS -->
+<div class="page" id="pg-lancamentos">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:18px;font-weight:700">Lançamentos</div>
+      <div style="font-size:12px;color:var(--mut)" id="lanc-count"></div>
+    </div>
+    <button class="btn btn-p" onclick="openModal('novo')">+ Novo lançamento</button>
+  </div>
+  <div class="filters">
+    <select id="f-mes" onchange="renderLanc()">
+      <option value="">Todos os meses</option>
+      <option value="12/25">Dez/25</option>
+      <option value="01/26">Jan/26</option><option value="02/26">Fev/26</option>
+      <option value="03/26" selected>Mar/26</option><option value="04/26">Abr/26</option>
+      <option value="05/26">Mai/26</option><option value="06/26">Jun/26</option>
+      <option value="07/26">Jul/26</option><option value="08/26">Ago/26</option>
+      <option value="09/26">Set/26</option><option value="10/26">Out/26</option>
+      <option value="11/26">Nov/26</option><option value="12/26">Dez/26</option>
+      <option value="01/27">Jan/27</option><option value="02/27">Fev/27</option>
+      <option value="03/27">Mar/27</option>
+    </select>
+    <select id="f-tipo" onchange="renderLanc()">
+      <option value="">Todos os tipos</option>
+      <option value="Entrada">Receita</option>
+      <option value="Saída">Despesa</option>
+    </select>
+    <select id="f-status" onchange="renderLanc()">
+      <option value="">Todos os status</option>
+      <option value="Realizado">Realizado</option>
+      <option value="A Realizar">A Realizar</option>
+    </select>
+    <select id="f-banco" onchange="renderLanc()">
+      <option value="">Todos os bancos</option>
+      <option value="C6 Bank">C6 Bank</option>
+      <option value="Nubank">Nubank</option>
+      <option value="Santander">Santander</option>
+      <option value="Clear">Clear</option>
+      <option value="Onil">Onil</option>
+      <option value="Binance">Binance</option>
+    </select>
+    <input id="f-busca" type="text" placeholder="Buscar..." oninput="renderLanc()" style="min-width:140px">
+  </div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Data</th><th>Descrição</th><th class="hide-mob">Plano de Contas</th><th class="hide-mob">Tipo</th><th class="hide-mob">Banco</th><th>Status</th><th>Fluxo</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+      <tbody id="lanc-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ALERTAS -->
+<div class="page" id="pg-alertas">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:18px;font-weight:700">Contas a pagar / receber</div>
+      <div style="font-size:12px;color:var(--mut)" id="al-summary"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <select id="al-mes" onchange="renderAlertas()" style="background:var(--sur);border:1px solid var(--brd2);border-radius:var(--rs);padding:7px 12px;color:var(--txt);font-size:13px;font-family:inherit;outline:none">
+        <option value="90dias">Próximos 90 dias</option>
+        <option value="03/26">Mar/26</option>
+        <option value="04/26">Abr/26</option>
+        <option value="05/26">Mai/26</option>
+        <option value="06/26">Jun/26</option>
+        <option value="07/26">Jul/26</option>
+        <option value="08/26">Ago/26</option>
+        <option value="09/26">Set/26</option>
+        <option value="10/26">Out/26</option>
+        <option value="11/26">Nov/26</option>
+        <option value="12/26">Dez/26</option>
+        <option value="01/27">Jan/27</option>
+        <option value="todos">Todos</option>
+      </select>
+    </div>
+  </div>
+  <div class="g2">
+    <div><div class="sec-title">Contas a pagar</div><div id="al-pagar"></div></div>
+    <div><div class="sec-title">Contas a receber</div><div id="al-receber"></div></div>
+  </div>
+</div>
+
+<!-- PATRIMÔNIO -->
+<div class="page" id="pg-patrimonio">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:18px;font-weight:700">Patrimônio</div>
+      <div style="font-size:12px;color:var(--mut)" id="pat-date">Carregando...</div>
+    </div>
+  </div>
+  <div class="kpi-grid" style="margin-bottom:20px" id="pat-kpis"></div>
+  <div class="g2">
+    <div><div class="sec-title">Contas bancárias</div><div id="bank-list"></div></div>
+    <div><div class="sec-title">Alocação por classe</div><div id="alloc-list"></div></div>
+  </div>
+  <div class="sec-title">Saldo por banco — histórico mensal</div>
+  <div class="tbl-wrap">
+    <table id="pat-saldo-bancos">
+      <thead>
+        <tr>
+          <th>Mês</th>
+          <th style="text-align:right">Nubank</th>
+          <th style="text-align:right">C6 Bank</th>
+          <th style="text-align:right">Santander</th>
+          <th style="text-align:right">Clear</th>
+          <th style="text-align:right">Binance</th>
+          <th style="text-align:right">Onil</th>
+          <th style="text-align:right;font-weight:700">Total</th>
+          <th style="text-align:right">Var. %</th>
+        </tr>
+      </thead>
+      <tbody id="pat-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="sec-title" style="margin-top:24px">Evolução do patrimônio</div>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Mês</th><th style="text-align:right">Patrimônio</th><th style="text-align:right">Variação R$</th><th style="text-align:right">Variação %</th><th style="text-align:right">Meta</th><th style="text-align:right">% Meta</th></tr></thead>
+      <tbody id="pat-evol-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ORÇAMENTO -->
+<div class="page" id="pg-orcamento">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:18px;font-weight:700">Orçamento — Março 2026</div>
+      <div style="font-size:12px;color:var(--mut)">Orçado vs Realizado</div>
+    </div>
+    <button class="btn btn-p" onclick="openModal('orc-edit')">Editar orçamento</button>
+  </div>
+  <div class="kpi-grid" style="margin-bottom:20px" id="orc-kpis"></div>
+  <div class="sec-title">Detalhamento por categoria</div>
+  <div id="orc-list"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal" id="modal-inner"></div>
+</div>
+
+<!-- FLUXO DIÁRIO -->
+<div class="page" id="pg-fluxo">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <div style="font-size:18px;font-weight:700">Fluxo de Caixa Diário</div>
+      <div style="font-size:12px;color:var(--mut)">Saldo projetado por dia — realizados + a realizar</div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:20px">
+    <div>
+      <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:block;margin-bottom:4px">Banco</label>
+      <select id="fl-banco" onchange="renderFluxo()" style="background:var(--sur);border:1px solid var(--brd2);border-radius:var(--rs);padding:7px 12px;color:var(--txt);font-size:13px;font-family:inherit;outline:none;min-width:130px">
+        <option value="">Todos os bancos</option>
+        <option value="C6 Bank" selected>C6 Bank</option>
+        <option value="Nubank">Nubank</option>
+        <option value="Santander">Santander</option>
+        <option value="Clear">Clear</option>
+        <option value="Onil">Onil</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:block;margin-bottom:4px">De</label>
+      <input type="date" id="fl-de" onchange="renderFluxo()" style="background:var(--sur);border:1px solid var(--brd2);border-radius:var(--rs);padding:7px 12px;color:var(--txt);font-size:13px;font-family:inherit;outline:none">
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:block;margin-bottom:4px">Até</label>
+      <input type="date" id="fl-ate" onchange="renderFluxo()" style="background:var(--sur);border:1px solid var(--brd2);border-radius:var(--rs);padding:7px 12px;color:var(--txt);font-size:13px;font-family:inherit;outline:none">
+    </div>
+    <div style="align-self:flex-end">
+      <button class="btn btn-s" onclick="resetFluxoFiltros()" style="margin-bottom:0">Limpar filtros</button>
+    </div>
+  </div>
+
+  <!-- KPIs do período -->
+  <div id="fl-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px"></div>
+
+  <!-- Alerta de dias negativos -->
+  <div id="fl-alerta" style="margin-bottom:16px"></div>
+
+  <!-- Tabela diária -->
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Dia</th>
+          <th style="text-align:right">Entradas</th>
+          <th style="text-align:right">Saídas</th>
+          <th style="text-align:right">Saldo do dia</th>
+          <th style="text-align:right">Saldo acumulado</th>
+          <th class="hide-mob">Lançamentos</th>
+        </tr>
+      </thead>
+      <tbody id="fl-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- GOOGLE DRIVE SYNC MODAL -->
+<div class="modal-bg" id="modal-drive">
+  <div class="modal" style="max-width:480px">
+    <h3>☁️ Sincronizar com Google Drive</h3>
+    <p style="font-size:13px;color:var(--txt2);line-height:1.6;margin-bottom:20px">
+      Seus dados ficam salvos em um arquivo <strong>myfinance-data.json</strong> no seu Google Drive. 
+      Funciona em qualquer dispositivo com a mesma conta Google.
+    </p>
+
+    <div id="drive-not-connected">
+      <div style="background:var(--acc-d);border:1px solid rgba(110,231,183,.2);border-radius:var(--rs);padding:12px 16px;margin-bottom:16px;font-size:12px;color:var(--acc)">
+        ℹ️ Clique em "Conectar" para autorizar o acesso ao Google Drive. O app só acessa o arquivo que ele mesmo criou — não vê outros arquivos seus.
+      </div>
+      <button class="btn btn-p" style="width:100%;justify-content:center;gap:8px" onclick="gdriveConnect()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.28 3L1 12.34 6.28 21h11.44L23 12.34 17.72 3zm0 1.5h11.44l4.5 7.84-4.5 7.84H6.28l-4.5-7.84z"/></svg>
+        Conectar ao Google Drive
+      </button>
+    </div>
+
+    <div id="drive-connected" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;background:var(--sur);border:1px solid var(--brd);border-radius:var(--rs);padding:12px 16px;margin-bottom:16px">
+        <div id="drive-user-img" style="width:32px;height:32px;border-radius:50%;background:var(--acc-d);display:flex;align-items:center;justify-content:center;font-size:14px">👤</div>
+        <div>
+          <div id="drive-user-name" style="font-size:13px;font-weight:600"></div>
+          <div id="drive-user-email" style="font-size:11px;color:var(--mut)"></div>
+        </div>
+        <div style="margin-left:auto"><span class="bdg bdg-ok">Conectado</span></div>
+      </div>
+      <div id="drive-last-sync" style="font-size:11px;color:var(--mut);margin-bottom:16px;text-align:center"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-p" style="flex:1;justify-content:center" onclick="gdriveSave()">⬆ Salvar no Drive</button>
+        <button class="btn btn-s" style="flex:1;justify-content:center" onclick="gdriveLoad()">⬇ Carregar do Drive</button>
+      </div>
+      <div style="margin-top:10px">
+        <button class="btn btn-s" style="width:100%;justify-content:center;opacity:.6" onclick="gdriveDisconnect()">Desconectar</button>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-s" onclick="exportBackup()" style="gap:6px">⬇ Exportar</button>
+      <button class="btn btn-s" onclick="document.getElementById('import-file').click()" style="gap:6px">⬆ Importar</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)">
+      <button class="btn btn-s" onclick="sendBackupEmail(true)" style="gap:6px">📧 Enviar e-mail</button>
+      <button class="btn btn-s" onclick="document.getElementById('modal-drive').classList.remove('on')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE BOTTOM NAV -->
+<div class="mob-menu">
+  <div class="mob-menu-items">
+    <button class="mob-item on" id="mob-dashboard" onclick="goTab('dashboard',this,'mob')">
+      <span class="mob-item-icon">📊</span>Dashboard
+    </button>
+    <button class="mob-item" id="mob-lancamentos" onclick="goTab('lancamentos',this,'mob')">
+      <span class="mob-item-icon">💸</span>Lançamentos
+    </button>
+    <button class="mob-item" id="mob-fluxo" onclick="goTab('fluxo',this,'mob')">
+      <span class="mob-item-icon">📅</span>Fluxo
+    </button>
+    <button class="mob-item" id="mob-alertas" onclick="goTab('alertas',this,'mob')">
+      <span class="mob-item-icon">🔔</span>Alertas
+    </button>
+    <button class="mob-item" id="mob-patrimonio" onclick="goTab('patrimonio',this,'mob')">
+      <span class="mob-item-icon">🏦</span>Patrimônio
+    </button>
+    <button class="mob-item" id="mob-orcamento" onclick="goTab('orcamento',this,'mob')">
+      <span class="mob-item-icon">📋</span>Orçamento
+    </button>
+  </div>
+</div>
+
+<script>
+// ─── DATE ─────────────────────────────────────────────────────────────────
+const now = new Date();
+document.getElementById('today-date').textContent = now.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+document.getElementById('pat-date').textContent = 'Atualizado em '+now.toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+
+// ─── CONSTANTS ────────────────────────────────────────────────────────────
+const PLANOS=['Salário CLT','13º salário / Férias','PLR','Pro labore DV SHOP','Pro labore IMWT','Rendimento','Venda Casa R$442.893','Outras Receitas','Imposto de Renda','Nubank','C6','Santander','XP','Prestação Apto','Aluguel','Condomínio','Luz','Água','Gás','Diarista/Mensalista','Supermercado','Feira/Padaria','IPTU','Telefones (fixo e celular)','Repasse Bianca','Seguro do automóvel','IPVA/DPVAT/Licenciamento','Combustível','Outras Despesas','Pós-graduação/MBA','Idiomas','Médico','Medicamentos','Academia','Roupas/Acessórios','Corte de Cabelo','Manicure/Sombrancelha','Presentes','Viagens/ passeios','Onil','Investimento'];
+const BANCOS=['C6 Bank','Nubank','Santander','Clear','XP','Binance','Onil'];
+const TIPOS=['Receita','Cartão de Crédito','Despesa com Moradia','Despesa com Transporte','Despesa com Educação','Despesa com Saúde','Despesa com Pessoais','Despesa com Lazer','Investimento'];
+
+// ─── STATE ────────────────────────────────────────────────────────────────
+let S={
+  lancamentos:[
+    {"id":1,"data":"2025-12-02","mes":"12/25","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"CASHBACK ATOMOS","fornecedor":"CASHBACK ATOMOS","valor":10.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":2,"data":"2025-12-05","mes":"12/25","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de ACTA ROBOTICS","fornecedor":"Pix recebido de ACTA ROBOTICS","valor":2145.11,"status":"Realizado","fluxo":"Entrada"},
+    {"id":3,"data":"2025-12-07","mes":"12/25","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"CASHBACK ATOMOS","fornecedor":"CASHBACK ATOMOS","valor":116.4,"status":"Realizado","fluxo":"Entrada"},
+    {"id":4,"data":"2025-12-09","mes":"12/25","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de DIEGO NUNES CASSIMIRO","fornecedor":"Pix recebido de DIEGO NUNES CASSIMIRO","valor":97.17,"status":"Realizado","fluxo":"Entrada"},
+    {"id":5,"data":"2025-12-13","mes":"12/25","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"CASHBACK ATOMOS","fornecedor":"CASHBACK ATOMOS","valor":16.54,"status":"Realizado","fluxo":"Entrada"},
+    {"id":6,"data":"2025-12-14","mes":"12/25","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de RAISSA PEREIRA FONSECA","fornecedor":"Pix recebido de RAISSA PEREIRA FONSECA","valor":57.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":7,"data":"2025-12-14","mes":"12/25","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de Monique Martins dos Santos","fornecedor":"Pix recebido de Monique Martins dos Santos","valor":57.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":8,"data":"2025-12-14","mes":"12/25","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de VINICIUS PEREIRA FONSECA","fornecedor":"Pix recebido de VINICIUS PEREIRA FONSECA","valor":114.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":9,"data":"2025-12-14","mes":"12/25","plano":"Pro labore DV SHOP","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de DIGITAL VIRTUAL SHOP LTDA","fornecedor":"Pix recebido de DIGITAL VIRTUAL SHOP LTDA","valor":1500.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":10,"data":"2025-12-15","mes":"12/25","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":10378.08,"status":"Realizado","fluxo":"Entrada"},
+    {"id":11,"data":"2025-12-15","mes":"12/25","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de ACTA ROBOTICS FABRICACAO DE ROBOS A","fornecedor":"Pix recebido de ACTA ROBOTICS FABRICACAO DE ROBOS A","valor":182.59,"status":"Realizado","fluxo":"Entrada"},
+    {"id":12,"data":"2025-12-15","mes":"12/25","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de ACTA R F R A LTDA","fornecedor":"Pix recebido de ACTA R F R A LTDA","valor":291.81,"status":"Realizado","fluxo":"Entrada"},
+    {"id":13,"data":"2025-12-22","mes":"12/25","plano":"13º salário / Férias","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de ACTA ROBOTICS","fornecedor":"Pix recebido de ACTA ROBOTICS","valor":770.84,"status":"Realizado","fluxo":"Entrada"},
+    {"id":14,"data":"2025-12-23","mes":"12/25","plano":"Venda Casa R$442.893","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de Tatiana Tsuha Nogueira","fornecedor":"Pix recebido de Tatiana Tsuha Nogueira","valor":96084.49,"status":"Realizado","fluxo":"Entrada"},
+    {"id":15,"data":"2026-02-23","mes":"02/26","plano":"Venda Casa R$442.893","tipo":"Receita","banco":"C6 Bank","desc":"Pix Caixa Economica","fornecedor":"Pix Caixa Economica","valor":350282.34,"status":"Realizado","fluxo":"Entrada"},
+    {"id":16,"data":"2026-02-24","mes":"02/26","plano":"Onil","tipo":"Investimento","banco":"C6 Bank","desc":"Onil","fornecedor":"Venda Casa investimento","valor":300000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":17,"data":"2025-12-24","mes":"12/25","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de DIEGO NUNES CASSIMIRO","fornecedor":"Pix recebido de DIEGO NUNES CASSIMIRO","valor":13.29,"status":"Realizado","fluxo":"Entrada"},
+    {"id":18,"data":"2025-12-30","mes":"12/25","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de MARCIA GONCALVES FERREIRA","fornecedor":"Pix recebido de MARCIA GONCALVES FERREIRA","valor":65.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":19,"data":"2026-01-01","mes":"01/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de Silvia Cristina Miranda do Nascimento","fornecedor":"Pix recebido de Silvia Cristina Miranda do Nascimento","valor":40.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":20,"data":"2026-01-01","mes":"01/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de Diego Nunes Cassimiro","fornecedor":"Pix recebido de Diego Nunes Cassimiro","valor":40.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":21,"data":"2026-01-02","mes":"01/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de Diego Nunes Cassimiro","fornecedor":"Pix recebido de Diego Nunes Cassimiro","valor":172.53,"status":"Realizado","fluxo":"Entrada"},
+    {"id":22,"data":"2026-01-03","mes":"01/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 1/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":23,"data":"2026-01-30","mes":"01/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 2/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":24,"data":"2026-03-02","mes":"03/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 3/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":25,"data":"2026-04-03","mes":"04/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 4/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":26,"data":"2026-05-03","mes":"05/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 5/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":27,"data":"2026-06-03","mes":"06/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 6/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":28,"data":"2026-07-03","mes":"07/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 7/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":29,"data":"2026-08-03","mes":"08/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 8/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":30,"data":"2026-09-03","mes":"09/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 9/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":31,"data":"2026-10-03","mes":"10/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 10/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":32,"data":"2026-11-03","mes":"11/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 11/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":33,"data":"2026-12-03","mes":"12/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 12/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":34,"data":"2027-01-03","mes":"01/27","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 13/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":35,"data":"2027-01-03","mes":"01/27","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 14/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":36,"data":"2027-02-03","mes":"02/27","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 15/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":37,"data":"2027-03-03","mes":"03/27","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 16/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":38,"data":"2027-04-03","mes":"04/27","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 17/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":39,"data":"2027-05-03","mes":"05/27","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 18/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":40,"data":"2027-05-03","mes":"05/27","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 19/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":41,"data":"2027-05-03","mes":"05/27","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda Terreno 20/20 - Minas","fornecedor":"Pix recebido c6 de TIAGO HENRIQUE DE SOUZA CASSIMIRO","valor":425.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":42,"data":"2027-01-03","mes":"01/27","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de ALESSANDRA APARECIDA ALVES CASSEMIRO","fornecedor":"Pix recebido de ALESSANDRA APARECIDA ALVES CASSEMIRO","valor":1130.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":43,"data":"2025-12-01","mes":"12/25","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":4915.02,"status":"Realizado","fluxo":"Saída"},
+    {"id":44,"data":"2025-12-02","mes":"12/25","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"IOF CHEQUE ESPECIAL","fornecedor":"IOF CHEQUE ESPECIAL","valor":9.64,"status":"Realizado","fluxo":"Saída"},
+    {"id":45,"data":"2025-12-06","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para JORDAO SILVA DA CUNHA","fornecedor":"Pix enviado para JORDAO SILVA DA CUNHA","valor":330.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":46,"data":"2025-12-06","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para SABRINA RAMOS TOLEDO","fornecedor":"Pix enviado para SABRINA RAMOS TOLEDO","valor":400.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":47,"data":"2025-12-06","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para Diego Damaceno","fornecedor":"Pix enviado para Diego Damaceno","valor":360.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":48,"data":"2025-12-07","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para AMADEU MARTIN NETO 33485818852","fornecedor":"Pix enviado para AMADEU MARTIN NETO 33485818852","valor":100.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":49,"data":"2025-12-07","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para JORGE JOSE DE SOUZA","fornecedor":"Pix enviado para JORGE JOSE DE SOUZA","valor":5.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":50,"data":"2025-12-09","mes":"12/25","plano":"Futebol","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para LUCAS VARGAS GARCIA SIMOES","fornecedor":"Pix enviado para LUCAS VARGAS GARCIA SIMOES","valor":100.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":51,"data":"2025-12-10","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para 36.477.579 MICHAEL EDUARDO ALVES PEREIRA","fornecedor":"Pix enviado para 36.477.579 MICHAEL EDUARDO ALVES PEREIRA","valor":80.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":52,"data":"2025-12-13","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para DANIEL LORENA","fornecedor":"Pix enviado para DANIEL LORENA","valor":10.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":53,"data":"2025-12-15","mes":"12/25","plano":"Futebol","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para LUCAS VARGAS GARCIA SIMOES","fornecedor":"Pix enviado para LUCAS VARGAS GARCIA SIMOES","valor":50.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":54,"data":"2025-12-16","mes":"12/25","plano":"Combustível","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"Pix enviado para BORRACHARIA COLUMBIA","fornecedor":"Pix enviado para BORRACHARIA COLUMBIA","valor":20.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":55,"data":"2025-12-16","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para ALESSANDRA APARECIDA ALVES CASSEMIRO","fornecedor":"Pix enviado para ALESSANDRA APARECIDA ALVES CASSEMIRO","valor":275.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":56,"data":"2025-12-19","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para Aldeci Justino Cassimiro","fornecedor":"Pix enviado para Aldeci Justino Cassimiro","valor":100.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":57,"data":"2025-12-20","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para RUBENS RODRIGUES MARCONI","fornecedor":"Pix enviado para RUBENS RODRIGUES MARCONI","valor":125.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":58,"data":"2025-12-23","mes":"12/25","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":40.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":59,"data":"2025-12-24","mes":"12/25","plano":"Renda Fixa","tipo":"Investimento","banco":"C6 Bank","desc":"Nubank","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":70000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":60,"data":"2025-12-24","mes":"12/25","plano":"Onil","tipo":"Investimento","banco":"C6 Bank","desc":"Onil","fornecedor":"Pix enviado para ONIL EXCHANGE INTERNACIONAL LTDA","valor":25000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":61,"data":"2025-12-25","mes":"12/25","plano":"Renda Fixa","tipo":"Investimento","banco":"C6 Bank","desc":"Nubank","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":1100.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":62,"data":"2026-01-01","mes":"01/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"Pix enviado para Aldeci Justino Cassimiro","fornecedor":"Pix enviado para Aldeci Justino Cassimiro","valor":65.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":63,"data":"2026-01-01","mes":"01/26","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para Amanda Cristina Nunes Cassimiro","fornecedor":"Pix enviado para Amanda Cristina Nunes Cassimiro","valor":83.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":64,"data":"2026-01-01","mes":"01/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":5500.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":65,"data":"2026-01-01","mes":"01/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":3409.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":66,"data":"2026-02-02","mes":"02/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":4872.77,"status":"Realizado","fluxo":"Saída"},
+    {"id":67,"data":"2026-03-02","mes":"03/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":3154.32,"status":"Realizado","fluxo":"Saída"},
+    {"id":68,"data":"2026-04-01","mes":"04/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":3500.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":69,"data":"2026-05-01","mes":"05/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":2500.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":70,"data":"2026-06-01","mes":"06/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":2500.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":71,"data":"2026-07-01","mes":"07/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":2500.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":72,"data":"2026-08-03","mes":"08/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":2500.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":73,"data":"2026-09-01","mes":"09/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":2500.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":74,"data":"2026-10-01","mes":"10/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":2500.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":75,"data":"2026-11-01","mes":"11/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":2500.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":76,"data":"2026-12-01","mes":"12/26","plano":"Santander","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"Pix enviado para Diego Nunes Cassimiro","fornecedor":"Pix enviado para Diego Nunes Cassimiro","valor":2500.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":77,"data":"2026-01-01","mes":"01/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":500.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":78,"data":"2026-02-25","mes":"02/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":1890.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":79,"data":"2026-03-02","mes":"03/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":8632.51,"status":"Realizado","fluxo":"Saída"},
+    {"id":80,"data":"2026-03-20","mes":"03/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":26.34,"status":"A Realizar","fluxo":"Saída"},
+    {"id":81,"data":"2026-04-15","mes":"04/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":4227.29,"status":"A Realizar","fluxo":"Saída"},
+    {"id":82,"data":"2026-04-01","mes":"04/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":6620.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":83,"data":"2026-05-01","mes":"05/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":5575.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":84,"data":"2026-06-01","mes":"06/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":5330.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":85,"data":"2026-07-01","mes":"07/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":4190.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":86,"data":"2026-08-01","mes":"08/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":3575.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":87,"data":"2026-09-01","mes":"09/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":1510.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":88,"data":"2026-10-01","mes":"10/26","plano":"Devolução DVSHOP","tipo":"Investimento","banco":"C6 Bank","desc":"Pix enviado para DV SHOP","fornecedor":"Pix enviado para DV SHOP","valor":435.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":89,"data":"2026-01-02","mes":"01/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":6977.04,"status":"Realizado","fluxo":"Saída"},
+    {"id":90,"data":"2026-02-02","mes":"02/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":6996.37,"status":"Realizado","fluxo":"Saída"},
+    {"id":91,"data":"2026-03-02","mes":"03/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":4282.42,"status":"Realizado","fluxo":"Saída"},
+    {"id":92,"data":"2026-04-01","mes":"04/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":7826.38,"status":"A Realizar","fluxo":"Saída"},
+    {"id":93,"data":"2026-05-01","mes":"05/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":6312.27,"status":"A Realizar","fluxo":"Saída"},
+    {"id":94,"data":"2026-06-01","mes":"06/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":6029.33,"status":"A Realizar","fluxo":"Saída"},
+    {"id":95,"data":"2026-07-01","mes":"07/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":5956.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":96,"data":"2026-08-03","mes":"08/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":5183.84,"status":"A Realizar","fluxo":"Saída"},
+    {"id":97,"data":"2026-09-01","mes":"09/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":5152.61,"status":"A Realizar","fluxo":"Saída"},
+    {"id":98,"data":"2026-10-01","mes":"10/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":3800.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":99,"data":"2026-11-01","mes":"11/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":3800.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":100,"data":"2026-12-01","mes":"12/26","plano":"XP","tipo":"Cartão de Crédito","banco":"C6 Bank","desc":"BANCO XP S A","fornecedor":"BANCO XP S A","valor":3800.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":101,"data":"2026-01-03","mes":"01/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"IOF CHEQUE ESPECIAL","fornecedor":"IOF CHEQUE ESPECIAL","valor":1.09,"status":"Realizado","fluxo":"Saída"},
+    {"id":102,"data":"2026-01-01","mes":"01/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Ajustes Saldo","fornecedor":"Ajuste Saldo","valor":17706.57,"status":"Realizado","fluxo":"Entrada"},
+    {"id":103,"data":"2025-12-31","mes":"12/25","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"Ajustes Saldo","fornecedor":"Ajuste Saldo","valor":253.4,"status":"Realizado","fluxo":"Saída"},
+    {"id":104,"data":"2026-01-05","mes":"01/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7467.81,"status":"Realizado","fluxo":"Entrada"},
+    {"id":105,"data":"2026-02-05","mes":"02/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"Realizado","fluxo":"Entrada"},
+    {"id":106,"data":"2026-03-05","mes":"03/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"Realizado","fluxo":"Entrada"},
+    {"id":107,"data":"2026-04-05","mes":"04/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":108,"data":"2026-05-05","mes":"05/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":109,"data":"2026-06-05","mes":"06/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":110,"data":"2026-07-05","mes":"07/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":111,"data":"2026-08-05","mes":"08/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":112,"data":"2026-09-05","mes":"09/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":113,"data":"2026-10-05","mes":"10/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":114,"data":"2026-11-05","mes":"11/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":115,"data":"2026-12-05","mes":"12/26","plano":"Salário CLT","tipo":"Receita","banco":"C6 Bank","desc":"Salário CLT","fornecedor":"Acta Robotics","valor":7441.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":116,"data":"2026-01-06","mes":"01/26","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"CASHBACK XP","fornecedor":"CASHBACK XP","valor":105.04,"status":"Realizado","fluxo":"Entrada"},
+    {"id":117,"data":"2026-02-09","mes":"02/26","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"CASHBACK XP","fornecedor":"CASHBACK XP","valor":98.76,"status":"Realizado","fluxo":"Entrada"},
+    {"id":118,"data":"2026-03-09","mes":"03/26","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"CASHBACK XP","fornecedor":"CASHBACK XP","valor":54.83,"status":"Realizado","fluxo":"Entrada"},
+    {"id":119,"data":"2026-01-14","mes":"01/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 1°parcela Clio","fornecedor":"IPVA Clio","valor":134.03,"status":"Realizado","fluxo":"Saída"},
+    {"id":120,"data":"2026-02-19","mes":"02/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 2°parcela Clio","fornecedor":"IPVA Clio","valor":134.03,"status":"Realizado","fluxo":"Saída"},
+    {"id":121,"data":"2026-03-16","mes":"03/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 3°parcela Clio","fornecedor":"IPVA Clio","valor":134.03,"status":"A Realizar","fluxo":"Saída"},
+    {"id":122,"data":"2026-04-16","mes":"04/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 4°parcela Clio","fornecedor":"IPVA Clio","valor":134.03,"status":"A Realizar","fluxo":"Saída"},
+    {"id":123,"data":"2026-05-16","mes":"05/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 5°parcela Clio","fornecedor":"IPVA Clio","valor":134.03,"status":"A Realizar","fluxo":"Saída"},
+    {"id":124,"data":"2026-08-01","mes":"08/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"Licenciamento Clio","fornecedor":"Licenciamento Clio","valor":174.08,"status":"A Realizar","fluxo":"Saída"},
+    {"id":125,"data":"2026-02-27","mes":"02/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"Multa Clio","fornecedor":"Multa Clio","valor":606.77,"status":"Realizado","fluxo":"Saída"},
+    {"id":126,"data":"2026-01-21","mes":"01/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 1°parcela Audi","fornecedor":"IPVA Audi","valor":501.65,"status":"Realizado","fluxo":"Saída"},
+    {"id":127,"data":"2026-02-23","mes":"02/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 2°parcela Audi","fornecedor":"IPVA Audi","valor":501.65,"status":"Realizado","fluxo":"Saída"},
+    {"id":128,"data":"2026-03-23","mes":"03/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 3°parcela Audi","fornecedor":"IPVA Audi","valor":501.65,"status":"A Realizar","fluxo":"Saída"},
+    {"id":129,"data":"2026-04-23","mes":"04/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 4°parcela Audi","fornecedor":"IPVA Audi","valor":501.65,"status":"A Realizar","fluxo":"Saída"},
+    {"id":130,"data":"2026-05-23","mes":"05/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"IPVA 5°parcela Audi","fornecedor":"IPVA Audi","valor":501.65,"status":"A Realizar","fluxo":"Saída"},
+    {"id":131,"data":"2026-08-01","mes":"08/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"Licenciamento Audi","fornecedor":"Licenciamento Audi","valor":174.08,"status":"A Realizar","fluxo":"Saída"},
+    {"id":132,"data":"2026-02-27","mes":"02/26","plano":"IPVA/DPVAT/Licenciamento","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"Multa Audi","fornecedor":"Multa Audi","valor":137.59,"status":"Realizado","fluxo":"Saída"},
+    {"id":133,"data":"2026-01-14","mes":"01/26","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Casa do Murilo","fornecedor":"Casa do Murilo","valor":60.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":134,"data":"2026-01-16","mes":"01/26","plano":"Medicamentos","tipo":"Despesa com Saúde","banco":"C6 Bank","desc":"Implante Capilar 7k a vista e 23k cartão","fornecedor":"Implante Capilar 7k a vista e 23k cartão","valor":7000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":135,"data":"2026-01-17","mes":"01/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":18847.74,"status":"Realizado","fluxo":"Entrada"},
+    {"id":136,"data":"2026-02-19","mes":"02/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":10869.56,"status":"Realizado","fluxo":"Entrada"},
+    {"id":137,"data":"2026-03-16","mes":"03/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":138,"data":"2026-04-15","mes":"04/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":139,"data":"2026-05-15","mes":"05/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":140,"data":"2026-06-15","mes":"06/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":141,"data":"2026-07-15","mes":"07/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":142,"data":"2026-08-15","mes":"08/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":143,"data":"2026-09-15","mes":"09/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":144,"data":"2026-10-15","mes":"10/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":145,"data":"2026-11-15","mes":"11/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":146,"data":"2026-12-15","mes":"12/26","plano":"Pro labore IMWT","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido de IMWT LTDA","fornecedor":"Pix recebido de IMWT LTDA","valor":13017.38,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":147,"data":"2026-01-17","mes":"01/26","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"Rendimento CDB","fornecedor":"Rendimento CDB","valor":59.26,"status":"Realizado","fluxo":"Entrada"},
+    {"id":148,"data":"2026-01-05","mes":"01/26","plano":"Onil","tipo":"Investimento","banco":"Nubank","desc":"Onil","fornecedor":"Pix enviado para ONIL EXCHANGE INTERNACIONAL LTDA","valor":26000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":149,"data":"2026-01-06","mes":"01/26","plano":"Onil","tipo":"Investimento","banco":"Nubank","desc":"Onil","fornecedor":"Pix enviado para ONIL EXCHANGE INTERNACIONAL LTDA","valor":19000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":150,"data":"2026-01-05","mes":"01/26","plano":"Binance","tipo":"Investimento","banco":"C6 Bank","desc":"Binance","fornecedor":"Transferência para Binance","valor":9.64,"status":"Realizado","fluxo":"Saída"},
+    {"id":151,"data":"2026-01-13","mes":"01/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"Nubank","desc":"Capitalização Aluguel 3x","fornecedor":"Porto Seguro Capitalização","valor":20000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":152,"data":"2026-01-05","mes":"01/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":7565.21,"status":"Realizado","fluxo":"Entrada"},
+    {"id":153,"data":"2026-02-08","mes":"02/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":10911.56,"status":"Realizado","fluxo":"Saída"},
+    {"id":154,"data":"2026-03-03","mes":"03/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":20072.8,"status":"Realizado","fluxo":"Entrada"},
+    {"id":155,"data":"2026-04-06","mes":"04/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":17865.33,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":156,"data":"2026-05-06","mes":"05/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":18365.56,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":157,"data":"2026-06-05","mes":"06/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":18879.79,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":158,"data":"2026-07-05","mes":"07/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":19408.43,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":159,"data":"2026-08-04","mes":"08/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":19951.86,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":160,"data":"2026-09-03","mes":"09/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":20510.52,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":161,"data":"2026-10-03","mes":"10/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":21084.81,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":162,"data":"2026-11-02","mes":"11/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":21675.18,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":163,"data":"2026-12-02","mes":"12/26","plano":"Rendimento","tipo":"Receita","banco":"Onil","desc":"Onil","fornecedor":"Rendimento Mensal - Onil","valor":22282.09,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":164,"data":"2026-01-19","mes":"01/26","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Marisa Talita","fornecedor":"Compra paçoca","valor":10.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":165,"data":"2026-01-19","mes":"01/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Pix recebido Nubank","fornecedor":"Pix recebido Nubank","valor":1200.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":166,"data":"2026-01-19","mes":"01/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Pix Mudança 1300,00","fornecedor":"Pix enviado Edmilson","valor":1300.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":167,"data":"2026-01-20","mes":"01/26","plano":"Futebol","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para LUCAS VARGAS GARCIA SIMOES","fornecedor":"Pix enviado para LUCAS VARGAS GARCIA SIMOES","valor":100.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":168,"data":"2026-01-20","mes":"01/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"Pix enviado para impressão","fornecedor":"Pix enviado para Santos Materias","valor":5.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":169,"data":"2026-01-20","mes":"01/26","plano":"Médico","tipo":"Despesa com Saúde","banco":"C6 Bank","desc":"Pix enviado cirurgia Bianca","fornecedor":"Pix enviado para Bianca Martins","valor":3000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":170,"data":"2026-01-21","mes":"01/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"Pix enviado K10 TV","fornecedor":"Pix enviado para K10","valor":40.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":171,"data":"2026-01-19","mes":"01/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"Nubank","desc":"Pix enviado para C6","fornecedor":"Pix enviado para C6","valor":1200.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":172,"data":"2026-01-23","mes":"01/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"Pix enviado Doação instrumento","fornecedor":"Pix enviado para Dorival","valor":30.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":173,"data":"2026-02-01","mes":"02/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel proporcional 19 dias","fornecedor":"Hadja imobiliária","valor":2600.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":174,"data":"2026-03-01","mes":"03/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":175,"data":"2026-04-01","mes":"04/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":176,"data":"2026-05-01","mes":"05/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":177,"data":"2026-06-01","mes":"06/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":178,"data":"2026-07-01","mes":"07/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":179,"data":"2026-08-01","mes":"08/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":180,"data":"2026-09-01","mes":"09/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":181,"data":"2026-10-01","mes":"10/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":182,"data":"2026-11-01","mes":"11/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":183,"data":"2026-12-01","mes":"12/26","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":184,"data":"2027-01-01","mes":"01/27","plano":"Aluguel","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Aluguel","fornecedor":"Hadja imobiliária","valor":6000.0,"status":"A Realizar","fluxo":"Saída"},
+    {"id":185,"data":"2026-02-18","mes":"02/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"Realizado","fluxo":"Saída"},
+    {"id":186,"data":"2026-03-16","mes":"03/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":845.58,"status":"A Realizar","fluxo":"Saída"},
+    {"id":187,"data":"2026-04-15","mes":"04/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":188,"data":"2026-05-15","mes":"05/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":189,"data":"2026-06-15","mes":"06/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":190,"data":"2026-07-15","mes":"07/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":191,"data":"2026-08-15","mes":"08/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":192,"data":"2026-09-15","mes":"09/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":193,"data":"2026-10-15","mes":"10/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":194,"data":"2026-11-15","mes":"11/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":195,"data":"2026-12-15","mes":"12/26","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":196,"data":"2027-01-15","mes":"01/27","plano":"Condomínio","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Condominio","fornecedor":"Vintage club","valor":786.35,"status":"A Realizar","fluxo":"Saída"},
+    {"id":197,"data":"2026-02-27","mes":"02/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"Realizado","fluxo":"Saída"},
+    {"id":198,"data":"2026-03-27","mes":"03/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"A Realizar","fluxo":"Saída"},
+    {"id":199,"data":"2026-04-27","mes":"04/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"A Realizar","fluxo":"Saída"},
+    {"id":200,"data":"2026-05-27","mes":"05/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"A Realizar","fluxo":"Saída"},
+    {"id":201,"data":"2026-06-29","mes":"06/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"A Realizar","fluxo":"Saída"},
+    {"id":202,"data":"2026-07-27","mes":"07/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"A Realizar","fluxo":"Saída"},
+    {"id":203,"data":"2026-08-27","mes":"08/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"A Realizar","fluxo":"Saída"},
+    {"id":204,"data":"2026-09-28","mes":"09/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"A Realizar","fluxo":"Saída"},
+    {"id":205,"data":"2026-10-27","mes":"10/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"A Realizar","fluxo":"Saída"},
+    {"id":206,"data":"2026-11-27","mes":"11/26","plano":"IPTU","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"IPTU","fornecedor":"Vintage club","valor":84.68,"status":"A Realizar","fluxo":"Saída"},
+    {"id":207,"data":"2026-01-28","mes":"01/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"Compra itens casa","fornecedor":"Pix enviado Bianca Martins","valor":100.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":208,"data":"2026-01-28","mes":"01/26","plano":"Médico","tipo":"Despesa com Saúde","banco":"C6 Bank","desc":"Cirurgia Bianca","fornecedor":"Pix enviado Sabrina Ramos","valor":600.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":209,"data":"2026-01-31","mes":"01/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"Santander","desc":"Saldo conta","fornecedor":"Santander","valor":0.8,"status":"Realizado","fluxo":"Saída"},
+    {"id":210,"data":"2026-01-31","mes":"01/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Saldo conta","fornecedor":"Santander","valor":0.8,"status":"Realizado","fluxo":"Entrada"},
+    {"id":211,"data":"2026-02-03","mes":"02/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"IOF CHEQUE ESPECIAL","fornecedor":"IOF CHEQUE ESPECIAL","valor":40.24,"status":"Realizado","fluxo":"Saída"},
+    {"id":212,"data":"2026-02-04","mes":"02/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda geladeira e forno 1/3","fornecedor":"Pix Felipe","valor":934.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":213,"data":"2026-02-15","mes":"02/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda geladeira e forno 2/3","fornecedor":"Pix Felipe","valor":932.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":214,"data":"2026-03-16","mes":"03/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Venda geladeira e forno 3/3","fornecedor":"Pix Felipe","valor":932.0,"status":"A Realizar","fluxo":"Entrada"},
+    {"id":215,"data":"2026-02-05","mes":"02/26","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"CASHBACK ATOMOS","fornecedor":"CASHBACK ATOMOS","valor":104.84,"status":"Realizado","fluxo":"Entrada"},
+    {"id":216,"data":"2026-02-05","mes":"02/26","plano":"Binance","tipo":"Investimento","banco":"C6 Bank","desc":"Binance","fornecedor":"Pix enviado para Binance BTC","valor":2000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":217,"data":"2026-02-05","mes":"02/26","plano":"Outras Receitas","tipo":"Receita","banco":"Binance","desc":"Binance","fornecedor":"Pix enviado para Binance BTC","valor":2000.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":218,"data":"2026-02-06","mes":"02/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"C6 tag","fornecedor":"C6Tag","valor":8.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":219,"data":"2026-02-07","mes":"02/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Saldo conta Nubank DV SHOP","fornecedor":"Saldo conta Nubank DV SHOP","valor":122.34,"status":"Realizado","fluxo":"Entrada"},
+    {"id":220,"data":"2026-02-08","mes":"02/26","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"Rendimento CDB","fornecedor":"Rendimento CDB","valor":52.14,"status":"Realizado","fluxo":"Entrada"},
+    {"id":221,"data":"2026-02-08","mes":"02/26","plano":"Rendimento","tipo":"Receita","banco":"Nubank","desc":"Rendimento CDB","fornecedor":"Rendimento CDB","valor":45.04,"status":"Realizado","fluxo":"Entrada"},
+    {"id":222,"data":"2026-02-09","mes":"02/26","plano":"Gás","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Compra Cooktop","fornecedor":"Renato Correa","valor":550.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":223,"data":"2026-02-10","mes":"02/26","plano":"Diarista/Mensalista","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Personal Organize","fornecedor":"Marinete","valor":600.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":224,"data":"2026-02-12","mes":"02/26","plano":"Gás","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Instalação Cooktop","fornecedor":"Marmoraria","valor":140.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":225,"data":"2026-02-13","mes":"02/26","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Viagem Casamento Gono 1/3","fornecedor":"Alex Hobi","valor":59.46,"status":"Realizado","fluxo":"Saída"},
+    {"id":226,"data":"2026-03-16","mes":"03/26","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Viagem Casamento Gono 2/3","fornecedor":"Alex Hobi","valor":59.46,"status":"A Realizar","fluxo":"Saída"},
+    {"id":227,"data":"2026-04-13","mes":"04/26","plano":"Viagens/ passeios","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Viagem Casamento Gono 3/3","fornecedor":"Alex Hobi","valor":59.46,"status":"A Realizar","fluxo":"Saída"},
+    {"id":228,"data":"2026-02-18","mes":"02/26","plano":"Repasse Bianca","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Cartão Bianca","fornecedor":"Bianca Martins","valor":3060.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":229,"data":"2026-02-20","mes":"02/26","plano":"Repasse Bianca","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Medica Bianca","fornecedor":"Bianca Martins","valor":3500.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":230,"data":"2026-02-20","mes":"02/26","plano":"Prestação Apto","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"4 Parcelas Ademicon","fornecedor":"Ademicon","valor":1484.12,"status":"Realizado","fluxo":"Saída"},
+    {"id":231,"data":"2026-02-23","mes":"02/26","plano":"Repasse Bianca","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Cartão Bianca","fornecedor":"Bianca Martins","valor":100.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":232,"data":"2025-12-23","mes":"12/25","plano":"Futebol","tipo":"Despesa com Lazer","banco":"C6 Bank","desc":"Pix enviado para Reginaldo Tenis","fornecedor":"Reginaldo Tenis","valor":350.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":233,"data":"2026-02-26","mes":"02/26","plano":"Água","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Manutenção Casa - Eletrica Internet","fornecedor":"Edevaldo Eletricista","valor":150.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":234,"data":"2026-02-28","mes":"02/26","plano":"Binance","tipo":"Investimento","banco":"C6 Bank","desc":"Binance","fornecedor":"Pix enviado para Binance BTC","valor":2000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":235,"data":"2026-02-28","mes":"02/26","plano":"Outras Receitas","tipo":"Receita","banco":"Binance","desc":"Binance","fornecedor":"Pix enviado para Binance BTC","valor":2000.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":236,"data":"2026-03-02","mes":"03/26","plano":"Binance","tipo":"Investimento","banco":"Binance","desc":"Binance","fornecedor":"Pix enviado para Binance BTC","valor":4000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":237,"data":"2026-03-03","mes":"03/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"IOF CHEQUE ESPECIAL","fornecedor":"IOF CHEQUE ESPECIAL","valor":7.89,"status":"Realizado","fluxo":"Saída"},
+    {"id":238,"data":"2026-03-03","mes":"03/26","plano":"Telefones (fixo e celular)","tipo":"Despesa com Moradia","banco":"C6 Bank","desc":"Instalação Fibra Vivo","fornecedor":"Tecnico Vivo","valor":20.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":239,"data":"2026-03-03","mes":"03/26","plano":"Rendimento","tipo":"Receita","banco":"C6 Bank","desc":"CASHBACK ATOMOS","fornecedor":"CASHBACK ATOMOS","valor":44.36,"status":"Realizado","fluxo":"Entrada"},
+    {"id":240,"data":"2026-03-03","mes":"03/26","plano":"Outras Despesas","tipo":"Despesa com Pessoais","banco":"C6 Bank","desc":"Ajustes Saldo","fornecedor":"Ajuste Saldo","valor":236.35,"status":"Realizado","fluxo":"Saída"},
+    {"id":241,"data":"2026-03-03","mes":"03/26","plano":"Rendimento","tipo":"Receita","banco":"Nubank","desc":"Rendimento CDB","fornecedor":"Rendimento CDB","valor":6.79,"status":"Realizado","fluxo":"Entrada"},
+    {"id":242,"data":"2026-03-02","mes":"03/26","plano":"Onil","tipo":"Investimento","banco":"Onil","desc":"Onil","fornecedor":"Onil","valor":4000.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":243,"data":"2026-03-04","mes":"03/26","plano":"Outras Receitas","tipo":"Receita","banco":"C6 Bank","desc":"Hortifruti Bianca","fornecedor":"Bianca Martins","valor":52.0,"status":"Realizado","fluxo":"Entrada"},
+    {"id":244,"data":"2026-03-05","mes":"03/26","plano":"Combustível","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"Estacionamento Médico","fornecedor":"Estacionamento Médico","valor":20.0,"status":"Realizado","fluxo":"Saída"},
+    {"id":245,"data":"2026-03-11","mes":"03/26","plano":"Combustível","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"Pedágio","fornecedor":"Bianca Martins","valor":30.0,"status":"Realizado","fluxo":"Saída"}
+  ],
+  alertas:[
+    {id:1,tipo:'pagar',desc:'IPVA 3ª parcela Clio',fornecedor:'IPVA Clio',banco:'C6 Bank',vencimento:'2026-03-16',valor:134.03,urgencia:'urgente',categoria:'Despesa com Transporte'},
+    {id:2,tipo:'pagar',desc:'Condomínio março/26',fornecedor:'Vintage Club',banco:'C6 Bank',vencimento:'2026-03-16',valor:845.58,urgencia:'urgente',categoria:'Despesa com Moradia'},
+    {id:3,tipo:'pagar',desc:'Viagem Casamento Gono 2/3',fornecedor:'Alex Hobi',banco:'C6 Bank',vencimento:'2026-03-16',valor:59.46,urgencia:'urgente',categoria:'Despesa com Lazer'},
+    {id:4,tipo:'pagar',desc:'Pix DV SHOP (devolução)',fornecedor:'DV SHOP',banco:'C6 Bank',vencimento:'2026-03-20',valor:26.34,urgencia:'urgente',categoria:'Investimento'},
+    {id:5,tipo:'pagar',desc:'IPVA 3ª parcela Audi',fornecedor:'IPVA Audi',banco:'C6 Bank',vencimento:'2026-03-23',valor:501.65,urgencia:'proximo',categoria:'Despesa com Transporte'},
+    {id:6,tipo:'pagar',desc:'IPTU Vintage Club',fornecedor:'Vintage Club',banco:'C6 Bank',vencimento:'2026-03-27',valor:84.68,urgencia:'proximo',categoria:'Despesa com Moradia'},
+    {id:7,tipo:'pagar',desc:'Fatura Santander - abril',fornecedor:'Diego N. Cassimiro',banco:'C6 Bank',vencimento:'2026-04-01',valor:3500,urgencia:'proximo',categoria:'Cartão de Crédito'},
+    {id:8,tipo:'pagar',desc:'Viagem Casamento Gono 3/3',fornecedor:'Alex Hobi',banco:'C6 Bank',vencimento:'2026-04-13',valor:59.46,urgencia:'ok',categoria:'Despesa com Lazer'},
+    {id:13,tipo:'receber',desc:'Pro labore IMWT - março',fornecedor:'IMWT LTDA',banco:'C6 Bank',vencimento:'2026-03-16',valor:13017.38,urgencia:'urgente',categoria:'Receita'},
+    {id:14,tipo:'receber',desc:'Venda geladeira e forno 3/3',fornecedor:'Pix Felipe',banco:'C6 Bank',vencimento:'2026-03-16',valor:932.00,urgencia:'urgente',categoria:'Outras Receitas'},
+    {id:9,tipo:'receber',desc:'Pro labore IMWT - abril',fornecedor:'IMWT LTDA',banco:'C6 Bank',vencimento:'2026-04-15',valor:13017.38,urgencia:'ok',categoria:'Receita'},
+    {id:10,tipo:'receber',desc:'Venda Terreno 4/20 - Minas',fornecedor:'Tiago Cassimiro',banco:'C6 Bank',vencimento:'2026-04-03',valor:425,urgencia:'ok',categoria:'Receita'},
+    {id:11,tipo:'receber',desc:'Rendimento Onil - abril',fornecedor:'Onil',banco:'C6 Bank',vencimento:'2026-04-30',valor:17865.33,urgencia:'ok',categoria:'Rendimento'},
+    {id:12,tipo:'receber',desc:'Salário CLT - abril',fornecedor:'ACTA ROBOTICS',banco:'C6 Bank',vencimento:'2026-04-05',valor:7441.38,urgencia:'ok',categoria:'Receita'},
+  ],
+  bancos:[
+    {id:1,nome:'Nubank',  saldoAbertura:71281.86,  dataAbertura:'2025-12-31', valor:5133.69,   classe:'Caixa',                    cor:'#8B5CF6'},
+    {id:2,nome:'C6 Bank', saldoAbertura:138.74,    dataAbertura:'2025-12-31', valor:42502.45,  classe:'Caixa',                    cor:'#F97316'},
+    {id:3,nome:'Santander',saldoAbertura:0.80,      dataAbertura:'2025-12-31', valor:0,         classe:'Caixa',                    cor:'#EF4444'},
+    {id:4,nome:'Clear',   saldoAbertura:155.24,    dataAbertura:'2025-12-31', valor:155.24,    classe:'Caixa',                    cor:'#6EE7B7'},
+    {id:5,nome:'Onil',    saldoAbertura:662719.79, dataAbertura:'2025-12-31', valor:675446.24, classe:'Investimento Internacional',cor:'#60A5FA'},
+    {id:6,nome:'XP',      saldoAbertura:0,          dataAbertura:'2025-12-31', valor:0,         classe:'Renda Fixa',               cor:'#3B82F6'},
+    {id:7,nome:'Binance', saldoAbertura:0,          dataAbertura:'2025-12-31', valor:0,         classe:'Cripto',                   cor:'#FCD34D'},
+  ],
+  orcamento:[
+    {cat:'Cartão de Crédito',orcado:8000,realizado:7436.74},
+    {cat:'Moradia (Aluguel)',orcado:6100,realizado:6020},
+    {cat:'Condomínio',orcado:800,realizado:845.58},
+    {cat:'IPTU',orcado:85,realizado:84.68},
+    {cat:'Água/Luz/Gás',orcado:300,realizado:0},
+    {cat:'Diarista/Mensalista',orcado:600,realizado:0},
+    {cat:'Transporte',orcado:700,realizado:685.68},
+    {cat:'Saúde',orcado:500,realizado:0},
+    {cat:'Educação',orcado:0,realizado:0},
+    {cat:'Pessoais',orcado:500,realizado:244.24},
+    {cat:'Lazer',orcado:500,realizado:59.46},
+    {cat:'Investimento',orcado:5000,realizado:16658.85},
+  ],
+  evolucao:[
+    {mes:'Dez/25', nubank:71212.53, c6:1347.71,    san:0.80, clear:155.24, bin:0,       onil:309719.79, pat:382436.07},
+    {mes:'Jan/26', nubank:5081.86,  c6:18333.04,   san:0,    clear:155.24, bin:0,       onil:362285.00, pat:385855.14},
+    {mes:'Fev/26', nubank:5126.90,  c6:56868.37,   san:0,    clear:155.24, bin:4000,    onil:651373.44, pat:717523.95},
+    {mes:'Mar/26', nubank:5133.69,  c6:42502.45,   san:0,    clear:155.24, bin:0,       onil:675446.24, pat:723237.62},
+    {mes:'Abr/26', nubank:5133.69,  c6:45944.01,   san:0,    clear:155.24, bin:0,       onil:693311.57, pat:744544.50},
+    {mes:'Mai/26', nubank:5133.69,  c6:44933.79,   san:0,    clear:155.24, bin:0,       onil:711677.13, pat:761899.84},
+    {mes:'Jun/26', nubank:5133.69,  c6:45087.19,   san:0,    clear:155.24, bin:0,       onil:730556.92, pat:780933.03},
+    {mes:'Jul/26', nubank:5133.69,  c6:46453.92,   san:0,    clear:155.24, bin:0,       onil:749965.34, pat:801708.19},
+    {mes:'Ago/26', nubank:5133.69,  c6:48859.65,   san:0,    clear:155.24, bin:0,       onil:769917.21, pat:824065.78},
+    {mes:'Set/26', nubank:5133.69,  c6:53709.77,   san:0,    clear:155.24, bin:0,       onil:790427.72, pat:849426.42},
+    {mes:'Out/26', nubank:5133.69,  c6:60987.50,   san:0,    clear:155.24, bin:0,       onil:811512.53, pat:877788.96},
+    {mes:'Nov/26', nubank:5133.69,  c6:68700.23,   san:0,    clear:155.24, bin:0,       onil:833187.72, pat:907176.87},
+    {mes:'Dez/26', nubank:5133.69,  c6:76497.64,   san:0,    clear:155.24, bin:0,       onil:855469.81, pat:937256.37},
+    {mes:'Jan/27', nubank:5133.69,  c6:70497.64,   san:0,    clear:155.24, bin:0,       onil:855469.81, pat:931256.37},
+  ],
+  nextId:246
+};
+
+const SALDOS_REF = {
+  '2025-12-31':{c6:1347.71,nubank:71212.53,onil:309719.79,san:0.8,clear:155.24,bin:0.0,total:382436.07},
+  '2026-01-01':{c6:1347.71,nubank:71281.86,onil:309719.79,san:0.8,clear:155.24,bin:0.0,total:382505.4},
+  '2026-01-02':{c6:10759.71,nubank:71281.86,onil:309719.79,san:0.8,clear:155.24,bin:0.0,total:391917.4},
+  '2026-01-03':{c6:1563.8,nubank:71281.86,onil:309719.79,san:0.8,clear:155.24,bin:0.0,total:382721.49},
+  '2026-01-04':{c6:3117.71,nubank:71281.86,onil:309719.79,san:0.8,clear:155.24,bin:0.0,total:384275.4},
+  '2026-01-05':{c6:10575.88,nubank:45281.86,onil:343285.0,san:0.8,clear:155.24,bin:0.0,total:399298.78},
+  '2026-01-06':{c6:10680.92,nubank:26281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:399403.82},
+  '2026-01-07':{c6:10680.92,nubank:26281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:399403.82},
+  '2026-01-08':{c6:10680.92,nubank:26281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:399403.82},
+  '2026-01-09':{c6:10680.92,nubank:26281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:399403.82},
+  '2026-01-10':{c6:10680.92,nubank:26281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:399403.82},
+  '2026-01-11':{c6:10680.92,nubank:26281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:399403.82},
+  '2026-01-12':{c6:10680.92,nubank:26281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:399403.82},
+  '2026-01-13':{c6:10680.92,nubank:6281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:379403.82},
+  '2026-01-14':{c6:10486.89,nubank:6281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:379209.79},
+  '2026-01-15':{c6:10486.89,nubank:6281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:379209.79},
+  '2026-01-16':{c6:3486.89,nubank:6281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:372209.79},
+  '2026-01-17':{c6:22393.89,nubank:6281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:391116.79},
+  '2026-01-18':{c6:22393.89,nubank:6281.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:391116.79},
+  '2026-01-19':{c6:22283.89,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:389806.79},
+  '2026-01-20':{c6:19178.89,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:386701.79},
+  '2026-01-21':{c6:18637.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:386160.14},
+  '2026-01-22':{c6:18637.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:386160.14},
+  '2026-01-23':{c6:18607.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:386130.14},
+  '2026-01-24':{c6:18607.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:386130.14},
+  '2026-01-25':{c6:18607.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:386130.14},
+  '2026-01-26':{c6:18607.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:386130.14},
+  '2026-01-27':{c6:18607.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:386130.14},
+  '2026-01-28':{c6:17907.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:385430.14},
+  '2026-01-29':{c6:17907.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:385430.14},
+  '2026-01-30':{c6:18332.24,nubank:5081.86,onil:362285.0,san:0.8,clear:155.24,bin:0.0,total:385855.14},
+  '2026-01-31':{c6:18333.04,nubank:5081.86,onil:362285.0,san:0.0,clear:155.24,bin:0.0,total:385855.14},
+  '2026-02-01':{c6:15733.04,nubank:5081.86,onil:362285.0,san:0.0,clear:155.24,bin:0.0,total:383255.14},
+  '2026-02-02':{c6:3863.9,nubank:5081.86,onil:362285.0,san:0.0,clear:155.24,bin:0.0,total:371386.0},
+  '2026-02-03':{c6:3823.66,nubank:5081.86,onil:362285.0,san:0.0,clear:155.24,bin:0.0,total:371345.76},
+  '2026-02-04':{c6:4757.66,nubank:5081.86,onil:362285.0,san:0.0,clear:155.24,bin:0.0,total:372279.76},
+  '2026-02-05':{c6:10303.88,nubank:5081.86,onil:362285.0,san:0.0,clear:155.24,bin:2000.0,total:379825.98},
+  '2026-02-06':{c6:10295.88,nubank:5081.86,onil:362285.0,san:0.0,clear:155.24,bin:2000.0,total:379817.98},
+  '2026-02-07':{c6:10418.22,nubank:5081.86,onil:362285.0,san:0.0,clear:155.24,bin:2000.0,total:379940.32},
+  '2026-02-08':{c6:10470.36,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:369125.94},
+  '2026-02-09':{c6:10019.12,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:368674.7},
+  '2026-02-10':{c6:9419.12,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:368074.7},
+  '2026-02-11':{c6:9419.12,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:368074.7},
+  '2026-02-12':{c6:9279.12,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:367934.7},
+  '2026-02-13':{c6:9219.66,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:367875.24},
+  '2026-02-14':{c6:9219.66,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:367875.24},
+  '2026-02-15':{c6:10151.66,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:368807.24},
+  '2026-02-16':{c6:10151.66,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:368807.24},
+  '2026-02-17':{c6:10151.66,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:368807.24},
+  '2026-02-18':{c6:6305.31,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:364960.89},
+  '2026-02-19':{c6:17040.84,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:375696.42},
+  '2026-02-20':{c6:12056.72,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:370712.3},
+  '2026-02-21':{c6:12056.72,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:370712.3},
+  '2026-02-22':{c6:12056.72,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:370712.3},
+  '2026-02-23':{c6:361737.41,nubank:5126.9,onil:351373.44,san:0.0,clear:155.24,bin:2000.0,total:720392.99},
+  '2026-02-24':{c6:61737.41,nubank:5126.9,onil:651373.44,san:0.0,clear:155.24,bin:2000.0,total:720392.99},
+  '2026-02-25':{c6:59847.41,nubank:5126.9,onil:651373.44,san:0.0,clear:155.24,bin:2000.0,total:718502.99},
+  '2026-02-26':{c6:59697.41,nubank:5126.9,onil:651373.44,san:0.0,clear:155.24,bin:2000.0,total:718352.99},
+  '2026-02-27':{c6:58868.37,nubank:5126.9,onil:651373.44,san:0.0,clear:155.24,bin:2000.0,total:717523.95},
+  '2026-02-28':{c6:56868.37,nubank:5126.9,onil:651373.44,san:0.0,clear:155.24,bin:4000.0,total:717523.95},
+  '2026-03-01':{c6:50868.37,nubank:5126.9,onil:651373.44,san:0.0,clear:155.24,bin:4000.0,total:711523.95},
+  '2026-03-02':{c6:35224.12,nubank:5126.9,onil:655373.44,san:0.0,clear:155.24,bin:0.0,total:695879.7},
+  '2026-03-03':{c6:35004.24,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:715739.41},
+  '2026-03-04':{c6:35056.24,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:715791.41},
+  '2026-03-05':{c6:42477.62,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723212.79},
+  '2026-03-06':{c6:42477.62,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723212.79},
+  '2026-03-07':{c6:42477.62,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723212.79},
+  '2026-03-08':{c6:42477.62,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723212.79},
+  '2026-03-09':{c6:42532.45,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723267.62},
+  '2026-03-10':{c6:42532.45,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723267.62},
+  '2026-03-11':{c6:42502.45,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723237.62},
+  '2026-03-12':{c6:42502.45,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723237.62},
+  '2026-03-13':{c6:42502.45,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723237.62},
+  '2026-03-14':{c6:42502.45,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723237.62},
+  '2026-03-15':{c6:42502.45,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:723237.62},
+  '2026-03-16':{c6:55412.76,nubank:5133.69,onil:675446.24,san:0.0,clear:155.24,bin:0.0,total:736147.93}
+};
+
+// ─── UTILS ────────────────────────────────────────────────────────────────
+const fmt=v=>'R$ '+Math.abs(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtS=v=>{const a=Math.abs(v);if(a>=1000000)return'R$'+(a/1000000).toFixed(1)+'M';if(a>=1000)return'R$'+(a/1000).toFixed(1)+'k';return'R$'+a.toFixed(0)};
+const totPat=()=>S.bancos.reduce((s,b)=>s+b.valor,0);
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+
+// ─── TAB NAV ──────────────────────────────────────────────────────────────
+let currentTab='dashboard';
+function goTab(id,el,source){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.mob-item').forEach(t=>t.classList.remove('on'));
+  document.getElementById('pg-'+id).classList.add('on');
+  if(el) el.classList.add('on');
+  // Sincroniza sempre o mob-item correto pelo ID
+  const mobEl = document.getElementById('mob-'+id);
+  if(mobEl) mobEl.classList.add('on');
+  // Sincroniza sempre o tab correto
+  document.querySelectorAll('.tab').forEach(t=>{
+    if(t.getAttribute('onclick') && t.getAttribute('onclick').includes("'"+id+"'")) t.classList.add('on');
+  });
+  currentTab=id;
+  window.scrollTo(0,0);
+  if(id==='dashboard') renderDash();
+  if(id==='lancamentos') renderLanc();
+  if(id==='alertas') renderAlertas();
+  if(id==='fluxo') renderFluxo();
+  if(id==='patrimonio') renderPat();
+  if(id==='orcamento') renderOrc();
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────
+// ─── CHART INSTANCES (destroyed on re-render) ─────────────────────────────
+const _charts = {};
+function destroyChart(id){ if(_charts[id]){ _charts[id].destroy(); delete _charts[id]; } }
+
+// ─── DASHBOARD PERÍODO ────────────────────────────────────────────────────
+function initDashPeriod(){
+  const hoje = new Date();
+  const ini  = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  document.getElementById('dash-de').value  = ini.toISOString().slice(0,10);
+  document.getElementById('dash-ate').value = hoje.toISOString().slice(0,10);
+}
+
+function setDashPeriod(tipo){
+  const hoje = new Date();
+  let de, ate;
+  if(tipo==='mes'){
+    de  = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    ate = hoje;
+  } else if(tipo==='mes-ant'){
+    de  = new Date(hoje.getFullYear(), hoje.getMonth()-1, 1);
+    ate = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+  } else if(tipo==='ytd'){
+    de  = new Date(hoje.getFullYear(), 0, 1);
+    ate = hoje;
+  } else {
+    // tudo: menor e maior data dos lançamentos
+    const datas = S.lancamentos.map(l=>l.data).sort();
+    de  = new Date(datas[0]||hoje);
+    ate = new Date(datas[datas.length-1]||hoje);
+  }
+  document.getElementById('dash-de').value  = de.toISOString().slice(0,10);
+  document.getElementById('dash-ate').value = ate.toISOString().slice(0,10);
+  renderDash();
+}
+
+function renderDash(){
+  const deStr  = document.getElementById('dash-de')  ? document.getElementById('dash-de').value  : '';
+  const ateStr = document.getElementById('dash-ate') ? document.getElementById('dash-ate').value : '';
+
+  // Filtra lançamentos do período
+  const lancPeriodo = S.lancamentos.filter(l => {
+    if(deStr  && l.data < deStr)  return false;
+    if(ateStr && l.data > ateStr) return false;
+    return true;
+  });
+
+  // Label do período
+  const labelPeriodo = deStr && ateStr
+    ? `${deStr.split('-').reverse().join('/')} → ${ateStr.split('-').reverse().join('/')}`
+    : 'Todos os períodos';
+  const elLabel = document.getElementById('dash-periodo-label');
+  if(elLabel) elLabel.textContent = labelPeriodo;
+
+  const pat   = totPat();
+  const meta  = 1000000;
+  const pct   = Math.min(100, pat/meta*100);
+  const falta = meta - pat;
+
+  const rec    = lancPeriodo.filter(l=>l.fluxo==='Entrada').reduce((s,l)=>s+l.valor,0);
+  const des    = lancPeriodo.filter(l=>l.fluxo==='Saída').reduce((s,l)=>s+l.valor,0);
+  const saldo  = rec - des;
+  const nLanc  = lancPeriodo.length;
+  const txPoup = rec > 0 ? ((rec-des)/rec*100) : 0;
+
+  const hoje0 = new Date(); hoje0.setHours(0,0,0,0);
+  const hojeStr0 = hoje0.toISOString().slice(0,10);
+  const em7dias = new Date(hoje0); em7dias.setDate(em7dias.getDate()+7);
+  const em7Str = em7dias.toISOString().slice(0,10);
+  const nUrgentes = S.lancamentos.filter(l =>
+    l.status==='A Realizar' && l.data >= hojeStr0 && l.data <= em7Str
+  ).length;
+
+  // ── Saldo inicial do período (da planilha de referência) ──
+  const getSaldoRefTotal = (d) => {
+    const ref = SALDOS_REF[d];
+    return ref ? ref.total : null;
+  };
+  const diaAntDash = deStr ? new Date(new Date(deStr+'T00:00:00').getTime() - 86400000).toISOString().slice(0,10) : null;
+  const saldoIniDash = diaAntDash ? (getSaldoRefTotal(diaAntDash) ?? getSaldoRefTotal(Object.keys(SALDOS_REF).filter(d=>d<=diaAntDash).sort().pop())) : null;
+  const saldoFimDash = ateStr ? (getSaldoRefTotal(ateStr) ?? null) : null;
+
+  // ── KPIs ──
+  document.getElementById('kpi-dash').innerHTML=`
+    ${saldoIniDash!==null?`<div class="kpi" style="--ka:var(--mut)"><div class="kpi-lbl">Saldo inicial</div><div class="kpi-val">${fmtS(saldoIniDash)}</div><div class="kpi-sub">${diaAntDash.split('-').reverse().join('/')}</div></div>`:''}
+    <div class="kpi" style="--ka:var(--acc)"><div class="kpi-lbl">Patrimônio Total</div><div class="kpi-val">${fmtS(pat)}</div><div class="kpi-sub up">↑ ${pct.toFixed(1)}% da meta</div></div>
+    <div class="kpi" style="--ka:var(--blue)"><div class="kpi-lbl">Receitas no período</div><div class="kpi-val">${fmtS(rec)}</div><div class="kpi-sub up">${nLanc} lançamentos</div></div>
+    <div class="kpi" style="--ka:var(--red)"><div class="kpi-lbl">Despesas no período</div><div class="kpi-val">${fmtS(des)}</div><div class="kpi-sub">Saídas totais</div></div>
+    <div class="kpi" style="--ka:${saldo>=0?'var(--acc)':'var(--red)'}"><div class="kpi-lbl">Saldo do período</div><div class="kpi-val">${fmtS(Math.abs(saldo))}</div><div class="kpi-sub ${saldo>=0?'up':'dn'}">${saldo>=0?'Positivo':'Negativo'}</div></div>
+    <div class="kpi" style="--ka:var(--amb)"><div class="kpi-lbl">Taxa de poupança</div><div class="kpi-val">${txPoup.toFixed(1)}%</div><div class="kpi-sub ${txPoup>=20?'up':'warn'}">${txPoup>=20?'Boa':'Abaixo do ideal'}</div></div>
+    ${nUrgentes>0?`<div class="kpi" style="--ka:var(--red)"><div class="kpi-lbl">Alertas urgentes</div><div class="kpi-val" style="color:var(--red)">${nUrgentes}</div><div class="kpi-sub dn">Vencem em até 7 dias</div></div>`:''}
+    <div class="kpi" style="--ka:#A78BFA"><div class="kpi-lbl">Falta para meta</div><div class="kpi-val">${fmtS(falta)}</div><div class="kpi-sub">R$ 1 milhão</div></div>`;
+
+  // ── Progress bar ──
+  document.getElementById('meta-bar').style.width=pct+'%';
+  document.getElementById('meta-pct').textContent=pct.toFixed(1)+'% concluído';
+  document.getElementById('meta-sub').textContent=`Faltam ${fmt(falta)} · Projeção: set/out 2026`;
+  document.getElementById('meta-atual').textContent=`Atual: ${fmt(pat)}`;
+
+  // ── Chart helpers ──
+  const chartDefaults = {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:{
+      backgroundColor:'#1E2940', borderColor:'rgba(255,255,255,.1)', borderWidth:1,
+      titleColor:'#E8EDF5', bodyColor:'#A8B3C4', padding:10,
+      callbacks:{ label: ctx => ' R$ '+Math.round(ctx.raw).toLocaleString('pt-BR') }
+    }},
+    scales:{
+      x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8B95A8',font:{size:10}} },
+      y:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8B95A8',font:{size:10}, callback:v=>'R$'+Math.round(v/1000)+'k'} }
+    }
+  };
+
+  // ── 1. Evolução patrimonial — filtra meses do período ──
+  const evFilt = S.evolucao.filter(e=>{
+    // converte 'Jan/26' → '2026-01-01'
+    const map = {Jan:'01',Fev:'02',Mar:'03',Abr:'04',Mai:'05',Jun:'06',Jul:'07',Ago:'08',Set:'09',Out:'10',Nov:'11',Dez:'12'};
+    const [nm, ay] = e.mes.split('/');
+    const d = `20${ay}-${map[nm]}-01`;
+    if(deStr  && d < deStr.slice(0,7)+'-01') return false;
+    if(ateStr && d > ateStr.slice(0,7)+'-01') return false;
+    return true;
+  });
+  const evLabels = evFilt.length ? evFilt.map(e=>e.mes) : S.evolucao.map(e=>e.mes);
+  const evData   = evFilt.length ? evFilt.map(e=>e.pat)  : S.evolucao.map(e=>e.pat);
+
+  destroyChart('evolucao');
+  _charts['evolucao'] = new Chart(document.getElementById('chart-evolucao'), {
+    type:'line',
+    data:{
+      labels: evLabels,
+      datasets:[
+        { label:'Patrimônio', data:evData, borderColor:'#6EE7B7', backgroundColor:'rgba(110,231,183,.08)', borderWidth:2, fill:true, tension:0.4, pointRadius:3, pointBackgroundColor:'#6EE7B7', pointHoverRadius:5 },
+        { label:'Meta R$1M',  data:evLabels.map(()=>1000000), borderColor:'rgba(252,211,77,.35)', borderWidth:1.5, borderDash:[5,4], fill:false, tension:0, pointRadius:0 }
+      ]
+    },
+    options:{...chartDefaults}
+  });
+
+  // ── 2. Receitas vs Despesas — meses dentro do período ──
+  // Gera lista de meses únicos presentes no período
+  const mesesSet = new Set(lancPeriodo.map(l=>l.mes));
+  const allMeses = ['01/26','02/26','03/26','04/26','05/26','06/26','07/26','08/26','09/26','10/26','11/26','12/26'];
+  const labMap   = {'01/26':'Jan','02/26':'Fev','03/26':'Mar','04/26':'Abr','05/26':'Mai','06/26':'Jun','07/26':'Jul','08/26':'Ago','09/26':'Set','10/26':'Out','11/26':'Nov','12/26':'Dez'};
+  // Se período cobre múltiplos meses, agrupa por mês; senão mostra todos com dados
+  const mesesFilt = allMeses.filter(m=>{
+    const d1 = `2026-${m.slice(0,2)}-01`;
+    const d2 = `2026-${m.slice(0,2)}-31`;
+    if(deStr  && d2 < deStr)  return false;
+    if(ateStr && d1 > ateStr) return false;
+    return true;
+  });
+  const recByMes = mesesFilt.map(m=>lancPeriodo.filter(l=>l.mes===m&&l.fluxo==='Entrada').reduce((s,l)=>s+l.valor,0));
+  const desByMes = mesesFilt.map(m=>lancPeriodo.filter(l=>l.mes===m&&l.fluxo==='Saída').reduce((s,l)=>s+l.valor,0));
+
+  destroyChart('recdes');
+  _charts['recdes'] = new Chart(document.getElementById('chart-recdes'), {
+    type:'bar',
+    data:{
+      labels: mesesFilt.map(m=>labMap[m]||m),
+      datasets:[
+        { label:'Receitas', data:recByMes, backgroundColor:'rgba(110,231,183,.7)', borderRadius:4, borderSkipped:false },
+        { label:'Despesas', data:desByMes, backgroundColor:'rgba(248,113,113,.7)', borderRadius:4, borderSkipped:false }
+      ]
+    },
+    options:{
+      ...chartDefaults,
+      plugins:{...chartDefaults.plugins, tooltip:{...chartDefaults.plugins.tooltip,
+        callbacks:{ label: ctx => ` ${ctx.dataset.label}: R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}` }
+      }}
+    }
+  });
+
+  // ── 3. Alocação (donut) — sempre patrimônio atual ──
+  const classes={};
+  S.bancos.forEach(b=>{ classes[b.classe]=(classes[b.classe]||0)+b.valor; });
+  const allocLabels = Object.keys(classes);
+  const allocVals   = Object.values(classes);
+  const allocColors = ['#60A5FA','#6EE7B7','#A78BFA','#FCD34D','#F87171'];
+  const allocTotal  = allocVals.reduce((s,v)=>s+v,0);
+
+  destroyChart('alloc');
+  _charts['alloc'] = new Chart(document.getElementById('chart-alloc'), {
+    type:'doughnut',
+    data:{ labels:allocLabels, datasets:[{ data:allocVals, backgroundColor:allocColors, borderColor:'#1E2940', borderWidth:3, hoverOffset:4 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'68%',
+      plugins:{ legend:{display:false}, tooltip:{
+        backgroundColor:'#1E2940', borderColor:'rgba(255,255,255,.1)', borderWidth:1,
+        titleColor:'#E8EDF5', bodyColor:'#A8B3C4', padding:10,
+        callbacks:{ label: ctx => ` ${ctx.label}: ${(ctx.raw/allocTotal*100).toFixed(1)}%  (R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')})` }
+      }}
+    }
+  });
+  document.getElementById('alloc-legend').innerHTML = allocLabels.map((l,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;white-space:nowrap">
+      <span style="width:9px;height:9px;border-radius:2px;background:${allocColors[i]};display:inline-block;flex-shrink:0"></span>
+      <span style="color:var(--txt2)">${l}</span>
+      <span style="color:var(--mut);margin-left:2px">${(allocVals[i]/allocTotal*100).toFixed(1)}%</span>
+    </div>`).join('');
+
+  // ── 4. Receitas por categoria no período ──
+  const catRec = {};
+  lancPeriodo.filter(l=>l.fluxo==='Entrada').forEach(l=>{ catRec[l.plano]=(catRec[l.plano]||0)+l.valor; });
+  const catDes = {};
+  lancPeriodo.filter(l=>l.fluxo==='Saída').forEach(l=>{ catDes[l.tipo]=(catDes[l.tipo]||0)+l.valor; });
+  const topDes = Object.entries(catDes).sort((a,b)=>b[1]-a[1]).slice(0,7);
+
+  destroyChart('orc');
+  _charts['orc'] = new Chart(document.getElementById('chart-orc'), {
+    type:'bar',
+    data:{
+      labels: topDes.map(([k])=>k.replace('Despesa com ','').length>16?k.replace('Despesa com ','').slice(0,14)+'…':k.replace('Despesa com ','')),
+      datasets:[{ label:'Despesas', data:topDes.map(([,v])=>v), backgroundColor:'rgba(248,113,113,.7)', borderRadius:3, borderSkipped:false }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{
+        backgroundColor:'#1E2940', borderColor:'rgba(255,255,255,.1)', borderWidth:1,
+        titleColor:'#E8EDF5', bodyColor:'#A8B3C4', padding:10,
+        callbacks:{ label: ctx => ` R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}` }
+      }},
+      scales:{
+        x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#8B95A8',font:{size:10}, callback:v=>'R$'+Math.round(v/1000)+'k'} },
+        y:{ grid:{display:false}, ticks:{color:'#A8B3C4',font:{size:10}} }
+      }
+    }
+  });
+
+  // ── Tabela do período ──
+  const recentes = lancPeriodo.sort((a,b)=>b.data.localeCompare(a.data)).slice(0,10);
+  document.getElementById('dash-tbody').innerHTML = recentes.length
+    ? recentes.map(l=>`<tr>
+        <td>${l.data.split('-').reverse().join('/')}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.desc}</td>
+        <td style="font-size:11px;color:var(--txt2)" class="hide-mob">${l.plano}</td>
+        <td class="hide-mob">${l.banco}</td>
+        <td><span class="bdg ${l.fluxo==='Entrada'?'bdg-rec':'bdg-des'}">${l.fluxo}</span></td>
+        <td class="td-amt" style="color:${l.fluxo==='Entrada'?'var(--acc)':'var(--red)'}">${l.fluxo==='Entrada'?'+':'-'}${fmt(l.valor)}</td>
+        <td class="hide-mob"><span class="bdg ${l.status==='Realizado'?'bdg-real':'bdg-pend'}">${l.status}</span></td>
+      </tr>`).join('')
+    : '<tr><td colspan="7" style="text-align:center;color:var(--mut);padding:24px">Nenhum lançamento no período</td></tr>';
+}
+
+// ─── LANÇAMENTOS ──────────────────────────────────────────────────────────
+function renderLanc(){
+  const fM=document.getElementById('f-mes').value,fT=document.getElementById('f-tipo').value,
+        fS=document.getElementById('f-status').value,fB=document.getElementById('f-banco').value,
+        fBusca=document.getElementById('f-busca').value.toLowerCase();
+  let list=S.lancamentos.filter(l=>{
+    if(fM&&l.mes!==fM)return false;
+    if(fT&&l.fluxo!==fT)return false;
+    if(fS&&l.status!==fS)return false;
+    if(fB&&l.banco!==fB)return false;
+    if(fBusca&&!l.desc.toLowerCase().includes(fBusca)&&!l.plano.toLowerCase().includes(fBusca)&&!l.fornecedor.toLowerCase().includes(fBusca))return false;
+    return true;
+  }).sort((a,b)=>b.data.localeCompare(a.data));
+  const tR=list.filter(l=>l.fluxo==='Entrada').reduce((s,l)=>s+l.valor,0);
+  const tD=list.filter(l=>l.fluxo==='Saída').reduce((s,l)=>s+l.valor,0);
+  document.getElementById('lanc-count').textContent=`${list.length} lançamentos · Entradas: ${fmt(tR)} · Saídas: ${fmt(tD)} · Saldo: ${fmt(tR-tD)}`;
+  document.getElementById('lanc-tbody').innerHTML=list.length?list.map(l=>`<tr>
+    <td style="white-space:nowrap">${l.data.split('-').reverse().join('/')}</td>
+    <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.desc}">${l.desc}</td>
+    <td style="font-size:11px;color:var(--txt2)" class="hide-mob">${l.plano}</td>
+    <td style="font-size:11px;color:var(--txt2)" class="hide-mob">${l.tipo}</td>
+    <td class="hide-mob">${l.banco}</td>
+    <td><span class="bdg ${l.status==='Realizado'?'bdg-real':'bdg-pend'}">${l.status}</span></td>
+    <td><span class="bdg ${l.fluxo==='Entrada'?'bdg-rec':'bdg-des'}">${l.fluxo}</span></td>
+    <td class="td-amt" style="color:${l.fluxo==='Entrada'?'var(--acc)':'var(--red)'}">${l.fluxo==='Entrada'?'+':'-'}${fmt(l.valor)}</td>
+    <td style="white-space:nowrap">
+      <button class="btn btn-s btn-sm" onclick="openModal('editar',${l.id})">Editar</button>
+      <button class="btn btn-d btn-sm" onclick="delLanc(${l.id})" style="margin-left:4px">✕</button>
+    </td>
+  </tr>`).join(''):'<tr><td colspan="9"><div class="empty"><div class="empty-icon">📋</div><p>Nenhum lançamento encontrado</p></div></td></tr>';
+}
+
+function delLanc(id){if(!confirm('Excluir este lançamento?'))return;S.lancamentos=S.lancamentos.filter(l=>l.id!==id);renderLanc();renderDash();toast('Lançamento excluído')}
+
+// ─── ALERTAS ──────────────────────────────────────────────────────────────
+function renderAlertas(){
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const hojeStr = hoje.toISOString().slice(0,10);
+  const filtro = document.getElementById('al-mes') ? document.getElementById('al-mes').value : '90dias';
+
+  function calcUrgencia(data){
+    const v = new Date(data+'T00:00:00');
+    const dias = Math.round((v - hoje) / 86400000);
+    if(dias <= 0)  return 'urgente';
+    if(dias <= 7)  return 'urgente';
+    if(dias <= 30) return 'proximo';
+    return 'ok';
+  }
+
+  // Define o intervalo de datas conforme filtro
+  let deStr, ateStr, label;
+  if(filtro === '90dias'){
+    const fim = new Date(hoje); fim.setDate(fim.getDate()+90);
+    deStr  = hojeStr;
+    ateStr = fim.toISOString().slice(0,10);
+    label  = 'Próximos 90 dias';
+  } else if(filtro === 'todos'){
+    deStr  = '2000-01-01';
+    ateStr = '2099-12-31';
+    label  = 'Todos os períodos';
+  } else {
+    // Formato MM/YY → monta primeiro e último dia do mês
+    // Mostra TODOS os lançamentos do mês, mesmo os já passados
+    const [mm, yy] = filtro.split('/');
+    deStr  = `20${yy}-${mm}-01`;
+    const fim = new Date(`20${yy}-${mm}-01`);
+    fim.setMonth(fim.getMonth()+1); fim.setDate(0);
+    ateStr = fim.toISOString().slice(0,10);
+    const nomeMes = {'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun','07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
+    label = `${nomeMes[mm]}/${yy}`;
+  }
+
+  const pagar = S.lancamentos
+    .filter(l => l.status==='A Realizar' && l.fluxo==='Saída' && l.data >= deStr && l.data <= ateStr)
+    .map(l => ({...l, urgencia: calcUrgencia(l.data)}))
+    .sort((a,b) => a.data.localeCompare(b.data));
+
+  const receber = S.lancamentos
+    .filter(l => l.status==='A Realizar' && l.fluxo==='Entrada' && l.data >= deStr && l.data <= ateStr)
+    .map(l => ({...l, urgencia: calcUrgencia(l.data)}))
+    .sort((a,b) => a.data.localeCompare(b.data));
+
+  const tP = pagar.reduce((s,l)=>s+l.valor,0);
+  const tR = receber.reduce((s,l)=>s+l.valor,0);
+  document.getElementById('al-summary').textContent =
+    `${label} · A pagar: ${fmt(tP)} · A receber: ${fmt(tR)} · Saldo: ${fmt(tR-tP)}`;
+
+  const urgMap = {
+    urgente:{cls:'bdg-urg', lbl:'URGENTE'},
+    proximo:{cls:'bdg-next',lbl:'PRÓXIMO'},
+    ok:     {cls:'bdg-ok',  lbl:'OK'}
+  };
+
+  const renderAl = (list, cor) => list.length ? list.map(l=>`
+    <div class="al-item">
+      <span class="bdg ${urgMap[l.urgencia].cls}" style="min-width:72px;justify-content:center">${urgMap[l.urgencia].lbl}</span>
+      <div class="al-info">
+        <div class="al-desc">${l.desc}</div>
+        <div class="al-date">${l.data.split('-').reverse().join('/')} · ${l.banco} · ${l.plano}</div>
+      </div>
+      <div>
+        <div class="al-amt" style="color:${cor}">${fmt(l.valor)}</div>
+        <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:4px">
+          <button class="btn btn-s btn-sm" onclick="openModal('editar',${l.id})">Editar</button>
+        </div>
+      </div>
+    </div>`).join('')
+    : `<div class="empty"><div class="empty-icon">✅</div><p>Nenhuma conta em ${label}</p></div>`;
+
+  document.getElementById('al-pagar').innerHTML   = renderAl(pagar,   'var(--red)');
+  document.getElementById('al-receber').innerHTML = renderAl(receber, 'var(--acc)');
+}
+function delAlerta(id){if(!confirm('Excluir este alerta?'))return;S.alertas=S.alertas.filter(a=>a.id!==id);renderAlertas();toast('Alerta excluído')}
+
+// ─── PATRIMÔNIO ───────────────────────────────────────────────────────────
+function renderPat(){
+  const pat=totPat();
+  const caixa=S.bancos.filter(b=>b.classe==='Caixa').reduce((s,b)=>s+b.valor,0);
+  const inv=S.bancos.filter(b=>b.classe==='Investimento Internacional').reduce((s,b)=>s+b.valor,0);
+  // Saldo inicial: dez/31/25 (primeira data do SALDOS_REF)
+  const primRef = Object.keys(SALDOS_REF).sort()[0];
+  const saldoIniPat = SALDOS_REF[primRef]?.total ?? 0;
+  const varPat = pat - saldoIniPat;
+  document.getElementById('pat-kpis').innerHTML=`
+    <div class="kpi" style="--ka:var(--mut)"><div class="kpi-lbl">Saldo inicial (${primRef.split('-').reverse().join('/')})</div><div class="kpi-val">${fmt(saldoIniPat)}</div><div class="kpi-sub">Abertura do período</div></div>
+    <div class="kpi" style="--ka:var(--acc)"><div class="kpi-lbl">Patrimônio Atual</div><div class="kpi-val">${fmt(pat)}</div><div class="kpi-sub up">↑ ${(pat/1000000*100).toFixed(1)}% da meta</div></div>
+    <div class="kpi" style="--ka:${varPat>=0?'var(--acc)':'var(--red)'}"><div class="kpi-lbl">Variação desde abertura</div><div class="kpi-val" style="color:${varPat>=0?'var(--acc)':'var(--red)'}">${varPat>=0?'+':''}${fmt(varPat)}</div><div class="kpi-sub ${varPat>=0?'up':'dn'}">${((varPat/saldoIniPat)*100).toFixed(1)}%</div></div>
+    <div class="kpi" style="--ka:var(--blue)"><div class="kpi-lbl">Caixa total</div><div class="kpi-val">${fmt(caixa)}</div><div class="kpi-sub">${(caixa/pat*100).toFixed(1)}% do patrimônio</div></div>
+    <div class="kpi" style="--ka:#A78BFA"><div class="kpi-lbl">Investim. Internacional</div><div class="kpi-val">${fmt(inv)}</div><div class="kpi-sub">${(inv/pat*100).toFixed(1)}% do patrimônio</div></div>
+    <div class="kpi" style="--ka:var(--amb)"><div class="kpi-lbl">Falta para R$ 1M</div><div class="kpi-val">${fmt(1000000-pat)}</div><div class="kpi-sub warn">Meta: dez/2026</div></div>`;
+  document.getElementById('bank-list').innerHTML=S.bancos.map(b=>{
+    const movsApos = S.lancamentos.filter(l => l.banco===b.nome && l.status==='Realizado' && l.data > b.dataAbertura);
+    const nMovs = movsApos.length;
+    const dataRef = b.dataAbertura.split('-').reverse().join('/');
+    return `<div class="bank-item">
+      <div class="bank-icon" style="background:${b.cor}22;color:${b.cor}">${b.nome.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1">
+        <div class="bank-name">${b.nome}</div>
+        <div class="bank-sub">${b.classe} · âncora ${dataRef}${nMovs>0?` · +${nMovs} mov.`:''}</div>
+      </div>
+      <div>
+        <div class="bank-val" style="color:${b.valor>0?'var(--txt)':'var(--mut)'}">${fmt(b.valor)}</div>
+        <div style="font-size:11px;color:var(--mut);text-align:right">${(b.valor/pat*100).toFixed(1)}%</div>
+      </div>
+    </div>`;
+  }).join('');
+  const classes={};S.bancos.forEach(b=>{classes[b.classe]=(classes[b.classe]||0)+b.valor});
+  const cols={'Caixa':'var(--blue)','Investimento Internacional':'var(--acc)','Renda Fixa':'#A78BFA','Cripto':'var(--amb)'};
+  document.getElementById('alloc-list').innerHTML=Object.entries(classes).map(([k,v])=>`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+        <span style="color:var(--txt2)">${k}</span><span style="font-weight:600">${(v/pat*100).toFixed(1)}%</span>
+      </div>
+      <div class="prog-track" style="height:5px"><div class="prog-fill" style="width:${Math.min(100,v/pat*100).toFixed(1)}%;background:${cols[k]||'var(--mut)'}"></div></div>
+      <div style="font-size:11px;color:var(--mut);text-align:right;margin-top:2px">${fmt(v)}</div>
+    </div>`).join('');
+
+  // ── Tabela saldo por banco por mês ──
+  const hoje = 'Mar/26';
+  document.getElementById('pat-tbody').innerHTML = S.evolucao.map((e,i)=>{
+    const prev = i>0 ? S.evolucao[i-1].pat : e.pat;
+    const vP   = i>0 ? ((e.pat-prev)/prev*100) : 0;
+    const isNow = e.mes === hoje;
+    const isFut = ['Abr/26','Mai/26','Jun/26','Jul/26','Ago/26','Set/26','Out/26','Nov/26','Dez/26','Jan/27'].includes(e.mes);
+    const rowStyle = isNow ? 'background:rgba(110,231,183,.07)' : isFut ? 'opacity:.6' : '';
+    const fmtCell = (v) => v > 0 ? fmt(v) : '<span style="color:var(--mut)">—</span>';
+    return `<tr style="${rowStyle}">
+      <td style="font-weight:${isNow?700:400};color:${isNow?'var(--acc)':isFut?'var(--mut)':'var(--txt)'};white-space:nowrap">
+        ${e.mes}${isNow?' <span style="font-size:9px;background:var(--acc);color:#0B0F1A;padding:1px 5px;border-radius:8px;font-weight:700">HOJE</span>':''}
+        ${isFut?' <span style="font-size:9px;color:var(--mut)">(proj.)</span>':''}
+      </td>
+      <td class="td-amt">${fmtCell(e.nubank)}</td>
+      <td class="td-amt">${fmtCell(e.c6)}</td>
+      <td class="td-amt">${fmtCell(e.san)}</td>
+      <td class="td-amt">${fmtCell(e.clear)}</td>
+      <td class="td-amt">${fmtCell(e.bin)}</td>
+      <td class="td-amt">${fmtCell(e.onil)}</td>
+      <td class="td-amt" style="font-weight:700;color:${isNow?'var(--acc)':'var(--txt)'}">${fmt(e.pat)}</td>
+      <td class="td-amt" style="color:${vP>=0?'var(--acc)':'var(--red)'}">${i===0?'—':(vP>=0?'+':'')+vP.toFixed(1)+'%'}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Tabela evolução (segunda tabela) ──
+  document.getElementById('pat-evol-tbody').innerHTML = S.evolucao.map((e,i)=>{
+    const prev=i>0?S.evolucao[i-1].pat:e.pat;
+    const vR=e.pat-prev, vP=i>0?((e.pat-prev)/prev*100):0;
+    const pm=e.pat/1000000*100;
+    const isNow=e.mes==='Mar/26';
+    return`<tr ${isNow?'style="background:rgba(110,231,183,.07)"':''}>
+      <td style="font-weight:${isNow?700:400};color:${isNow?'var(--acc)':'var(--txt)'}">${e.mes}</td>
+      <td class="td-amt">${fmt(e.pat)}</td>
+      <td class="td-amt" style="color:${vR>=0?'var(--acc)':'var(--red)'}">${i===0?'—':(vR>=0?'+':'')+fmt(vR)}</td>
+      <td class="td-amt" style="color:${vP>=0?'var(--acc)':'var(--red)'}">${i===0?'—':(vP>=0?'+':'')+vP.toFixed(2)+'%'}</td>
+      <td class="td-amt" style="color:var(--mut)">R$ 1.000.000</td>
+      <td class="td-amt"><div style="display:flex;align-items:center;gap:8px;justify-content:flex-end"><span>${pm.toFixed(1)}%</span><div style="width:56px;background:var(--bg);border-radius:99px;height:4px;overflow:hidden"><div style="width:${Math.min(100,pm)}%;height:100%;background:var(--acc);border-radius:99px"></div></div></div></td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── ORÇAMENTO ────────────────────────────────────────────────────────────
+function renderOrc(){
+  const tO=S.orcamento.reduce((s,o)=>s+o.orcado,0),tR=S.orcamento.reduce((s,o)=>s+o.realizado,0);
+  document.getElementById('orc-kpis').innerHTML=`
+    <div class="kpi" style="--ka:var(--blue)"><div class="kpi-lbl">Total orçado</div><div class="kpi-val">${fmt(tO)}</div><div class="kpi-sub">Março 2026</div></div>
+    <div class="kpi" style="--ka:var(--red)"><div class="kpi-lbl">Total realizado</div><div class="kpi-val">${fmt(tR)}</div><div class="kpi-sub ${tR>tO?'dn':'warn'}">${(tR/tO*100).toFixed(0)}% do orçado</div></div>
+    <div class="kpi" style="--ka:${tO-tR>=0?'var(--acc)':'var(--red)'}"><div class="kpi-lbl">Saldo disponível</div><div class="kpi-val">${fmt(Math.abs(tO-tR))}</div><div class="kpi-sub ${tO-tR>=0?'up':'dn'}">${tO-tR>=0?'Dentro do orçamento':'Acima do orçado'}</div></div>`;
+  document.getElementById('orc-list').innerHTML=S.orcamento.map((o,i)=>{
+    const pct=o.orcado>0?(o.realizado/o.orcado*100):0;
+    const over=pct>100,warn=pct>80;
+    const col=over?'var(--red)':warn?'var(--amb)':'var(--acc)';
+    return`<div class="orc-row">
+      <div class="orc-lbl">${o.cat}</div>
+      <div class="orc-track"><div class="orc-fill" style="width:${Math.min(100,pct).toFixed(0)}%;background:${col}"></div></div>
+      <div class="orc-pct">${pct.toFixed(0)}%</div>
+      <div class="orc-val" style="color:${col}">${fmt(o.realizado)}</div>
+      <div class="orc-status"><span class="bdg ${over?'bdg-urg':warn?'bdg-warn':'bdg-ok'}">${over?'🔴 Estourou':warn?'⚠ Atenção':'✅ OK'}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ─── MODAIS ───────────────────────────────────────────────────────────────
+const pOpts=PLANOS.map(p=>`<option value="${p}">${p}</option>`).join('');
+const bOpts=BANCOS.map(b=>`<option value="${b}">${b}</option>`).join('');
+const tOpts=TIPOS.map(t=>`<option value="${t}">${t}</option>`).join('');
+
+function openModal(tipo,id){
+  const m=document.getElementById('modal-inner');
+  if(tipo==='novo'){
+    const today=new Date().toISOString().slice(0,10);
+    m.innerHTML=`<h3>Novo lançamento</h3>
+      <div class="fld-row">
+        <div class="fld"><label>Data</label><input type="date" id="m-data" value="${today}"></div>
+        <div class="fld"><label>Fluxo</label><select id="m-fluxo"><option value="Entrada">Entrada (Receita)</option><option value="Saída">Saída (Despesa)</option></select></div>
+      </div>
+      <div class="fld"><label>Descrição</label><input type="text" id="m-desc" placeholder="Ex: Pix recebido de IMWT"></div>
+      <div class="fld-row">
+        <div class="fld"><label>Plano de Contas</label><select id="m-plano">${pOpts}</select></div>
+        <div class="fld"><label>Tipo</label><select id="m-tipo">${tOpts}</select></div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><label>Banco</label><select id="m-banco">${bOpts}</select></div>
+        <div class="fld"><label>Valor (R$)</label><input type="number" id="m-valor" step="0.01" min="0" placeholder="0,00"></div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><label>Fornecedor / Origem</label><input type="text" id="m-forn" placeholder="Nome"></div>
+        <div class="fld"><label>Status</label><select id="m-status"><option value="Realizado">Realizado</option><option value="A Realizar">A Realizar</option></select></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-s" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveLanc()">Salvar</button>
+      </div>`;
+  } else if(tipo==='editar'){
+    const l=S.lancamentos.find(x=>x.id===id);if(!l)return;
+    m.innerHTML=`<h3>Editar lançamento</h3>
+      <input type="hidden" id="m-id" value="${l.id}">
+      <div class="fld-row">
+        <div class="fld"><label>Data</label><input type="date" id="m-data" value="${l.data}"></div>
+        <div class="fld"><label>Fluxo</label><select id="m-fluxo"><option value="Entrada" ${l.fluxo==='Entrada'?'selected':''}>Entrada</option><option value="Saída" ${l.fluxo==='Saída'?'selected':''}>Saída</option></select></div>
+      </div>
+      <div class="fld"><label>Descrição</label><input type="text" id="m-desc" value="${l.desc}"></div>
+      <div class="fld-row">
+        <div class="fld"><label>Plano de Contas</label><select id="m-plano">${PLANOS.map(p=>`<option value="${p}" ${p===l.plano?'selected':''}>${p}</option>`).join('')}</select></div>
+        <div class="fld"><label>Tipo</label><select id="m-tipo">${TIPOS.map(t=>`<option value="${t}" ${t===l.tipo?'selected':''}>${t}</option>`).join('')}</select></div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><label>Banco</label><select id="m-banco">${BANCOS.map(b=>`<option value="${b}" ${b===l.banco?'selected':''}>${b}</option>`).join('')}</select></div>
+        <div class="fld"><label>Valor (R$)</label><input type="number" id="m-valor" step="0.01" value="${l.valor}"></div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><label>Fornecedor</label><input type="text" id="m-forn" value="${l.fornecedor}"></div>
+        <div class="fld"><label>Status</label><select id="m-status"><option value="Realizado" ${l.status==='Realizado'?'selected':''}>Realizado</option><option value="A Realizar" ${l.status==='A Realizar'?'selected':''}>A Realizar</option></select></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-s" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveLanc(true)">Salvar alterações</button>
+      </div>`;
+  } else if(tipo==='nova-conta'){
+    const today=new Date().toISOString().slice(0,10);
+    m.innerHTML=`<h3>Nova conta a pagar / receber</h3>
+      <div class="fld-row">
+        <div class="fld"><label>Tipo</label><select id="a-tipo"><option value="pagar">A Pagar</option><option value="receber">A Receber</option></select></div>
+        <div class="fld"><label>Vencimento</label><input type="date" id="a-venc" value="${today}"></div>
+      </div>
+      <div class="fld"><label>Descrição</label><input type="text" id="a-desc" placeholder="Ex: IPVA 4ª parcela"></div>
+      <div class="fld-row">
+        <div class="fld"><label>Fornecedor / Origem</label><input type="text" id="a-forn" placeholder="Nome"></div>
+        <div class="fld"><label>Valor (R$)</label><input type="number" id="a-valor" step="0.01" min="0"></div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><label>Banco</label><select id="a-banco">${bOpts}</select></div>
+        <div class="fld"><label>Urgência</label><select id="a-urg"><option value="urgente">Urgente (≤7 dias)</option><option value="proximo" selected>Próximo (≤30 dias)</option><option value="ok">OK (>30 dias)</option></select></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-s" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveConta()">Salvar</button>
+      </div>`;
+  } else if(tipo==='editar-alerta'){
+    const a=S.alertas.find(x=>x.id===id);if(!a)return;
+    m.innerHTML=`<h3>Editar conta</h3>
+      <input type="hidden" id="a-id" value="${a.id}">
+      <div class="fld-row">
+        <div class="fld"><label>Tipo</label><select id="a-tipo"><option value="pagar" ${a.tipo==='pagar'?'selected':''}>A Pagar</option><option value="receber" ${a.tipo==='receber'?'selected':''}>A Receber</option></select></div>
+        <div class="fld"><label>Vencimento</label><input type="date" id="a-venc" value="${a.vencimento}"></div>
+      </div>
+      <div class="fld"><label>Descrição</label><input type="text" id="a-desc" value="${a.desc}"></div>
+      <div class="fld-row">
+        <div class="fld"><label>Fornecedor</label><input type="text" id="a-forn" value="${a.fornecedor}"></div>
+        <div class="fld"><label>Valor (R$)</label><input type="number" id="a-valor" step="0.01" value="${a.valor}"></div>
+      </div>
+      <div class="fld-row">
+        <div class="fld"><label>Banco</label><select id="a-banco">${BANCOS.map(b=>`<option value="${b}" ${b===a.banco?'selected':''}>${b}</option>`).join('')}</select></div>
+        <div class="fld"><label>Urgência</label><select id="a-urg"><option value="urgente" ${a.urgencia==='urgente'?'selected':''}>Urgente</option><option value="proximo" ${a.urgencia==='proximo'?'selected':''}>Próximo</option><option value="ok" ${a.urgencia==='ok'?'selected':''}>OK</option></select></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-s" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveConta(true)">Salvar</button>
+      </div>`;
+  } else if(tipo==='orc-edit'){
+    m.innerHTML=`<h3>Editar orçamento — Mar/26</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;font-weight:600;color:var(--mut);margin-bottom:4px;padding:0 4px"><span>Orçado</span><span>Realizado</span></div>
+      ${S.orcamento.map((o,i)=>`<div class="fld"><label>${o.cat}</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <input type="number" id="orc-orc-${i}" step="0.01" value="${o.orcado}" placeholder="Orçado">
+          <input type="number" id="orc-real-${i}" step="0.01" value="${o.realizado}" placeholder="Realizado">
+        </div></div>`).join('')}
+      <div class="modal-actions">
+        <button class="btn btn-s" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveOrc()">Salvar</button>
+      </div>`;
+  }
+  document.getElementById('modal').classList.add('on');
+}
+
+function closeModal(){document.getElementById('modal').classList.remove('on')}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal()});
+
+// ─── RECALCULA SALDO DOS BANCOS ────────────────────────────────────────────
+// Lógica definitiva:
+//   valor = saldoAbertura (saldo real na dataAbertura)
+//         + Σ lançamentos Realizados com data > dataAbertura
+//         - Σ lançamentos Realizados com data > dataAbertura (saídas)
+//
+// Assim: adicionar, editar ou deletar qualquer lançamento Realizado
+// sempre produz o saldo correto, sem depender de "saldoBase" calculado às avessas.
+function recalcBancos(){
+  S.bancos.forEach(b=>{
+    const movs = S.lancamentos.filter(l =>
+      l.banco   === b.nome         &&
+      l.status  === 'Realizado'    &&
+      l.data    >   b.dataAbertura   // somente após a data de abertura
+    );
+    const delta = movs.reduce((s,l) => l.fluxo==='Entrada' ? s+l.valor : s-l.valor, 0);
+    b.valor = b.saldoAbertura + delta;
+  });
+}
+
+function saveLanc(edit=false){
+  const data=document.getElementById('m-data').value,desc=document.getElementById('m-desc').value.trim(),valor=parseFloat(document.getElementById('m-valor').value);
+  if(!data||!desc||!valor||valor<=0){toast('Preencha todos os campos');return}
+  const mes=data.slice(5,7)+'/'+data.slice(2,4);
+  const obj={data,mes,desc,valor,plano:document.getElementById('m-plano').value,tipo:document.getElementById('m-tipo').value,banco:document.getElementById('m-banco').value,fornecedor:document.getElementById('m-forn').value||'',status:document.getElementById('m-status').value,fluxo:document.getElementById('m-fluxo').value};
+  if(edit){const id=parseInt(document.getElementById('m-id').value);Object.assign(S.lancamentos.find(x=>x.id===id),obj);toast('Atualizado ✓')}
+  else{S.lancamentos.push({id:S.nextId++,...obj});toast('Lançamento adicionado ✓')}
+  recalcBancos();
+  closeModal();renderLanc();renderDash();renderPat();
+}
+
+function saveConta(edit=false){
+  const desc=document.getElementById('a-desc').value.trim(),valor=parseFloat(document.getElementById('a-valor').value);
+  if(!desc||!valor||valor<=0){toast('Preencha todos os campos');return}
+  const obj={tipo:document.getElementById('a-tipo').value,vencimento:document.getElementById('a-venc').value,desc,fornecedor:document.getElementById('a-forn').value||'',valor,banco:document.getElementById('a-banco').value,urgencia:document.getElementById('a-urg').value};
+  if(edit){const id=parseInt(document.getElementById('a-id').value);Object.assign(S.alertas.find(x=>x.id===id),obj);toast('Atualizado ✓')}
+  else{S.alertas.push({id:S.nextId++,...obj});toast('Conta adicionada ✓')}
+  closeModal();renderAlertas();
+}
+
+function saveOrc(){S.orcamento.forEach((o,i)=>{o.orcado=parseFloat(document.getElementById('orc-orc-'+i).value)||0;o.realizado=parseFloat(document.getElementById('orc-real-'+i).value)||0});closeModal();renderOrc();renderDash();toast('Orçamento atualizado ✓')}
+
+// ─── FLUXO DIÁRIO ─────────────────────────────────────────────────────────
+const DIAS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+
+function initFluxoFiltros(){
+  document.getElementById('fl-de').value  = '2025-12-31';
+  document.getElementById('fl-ate').value = new Date().toISOString().slice(0,10);
+}
+
+function resetFluxoFiltros(){
+  initFluxoFiltros();
+  renderFluxo();
+}
+
+function setFluxoPeriod(tipo){
+  const hoje = new Date().toISOString().slice(0,10);
+  if(tipo==='historico'){
+    document.getElementById('fl-de').value  = '2025-12-01';
+    document.getElementById('fl-ate').value = hoje;
+  } else if(tipo==='mes'){
+    const d = new Date();
+    document.getElementById('fl-de').value  = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0,10);
+    document.getElementById('fl-ate').value = hoje;
+  } else if(tipo==='futuro'){
+    const ate = new Date(); ate.setDate(ate.getDate()+60);
+    document.getElementById('fl-de').value  = hoje;
+    document.getElementById('fl-ate').value = ate.toISOString().slice(0,10);
+  } else { // tudo
+    const datas = S.lancamentos.map(l=>l.data).concat(S.alertas.map(a=>a.vencimento)).sort();
+    document.getElementById('fl-de').value  = datas[0] || '2025-12-01';
+    document.getElementById('fl-ate').value = datas[datas.length-1] || hoje;
+  }
+  renderFluxo();
+}
+
+function renderFluxo(){
+  const banco  = document.getElementById('fl-banco').value;
+  const deStr  = document.getElementById('fl-de').value;
+  const ateStr = document.getElementById('fl-ate').value;
+  if(!deStr||!ateStr) return;
+
+  const de = new Date(deStr+'T00:00:00'), ate = new Date(ateStr+'T00:00:00');
+  if(de>ate){
+    document.getElementById('fl-tbody').innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--mut);padding:24px">Data inicial maior que a final</td></tr>';
+    return;
+  }
+
+  // Mapeamento banco → campo no SALDOS_REF
+  const BANCO_CAMPO = {'C6 Bank':'c6','Nubank':'nubank','Onil':'onil','Santander':'san','Clear':'clear','Binance':'bin'};
+
+  // Retorna saldo de referência da planilha para a data/banco
+  function getSaldoRef(d){
+    const ref = SALDOS_REF[d];
+    if(!ref) return null;
+    if(!banco) return ref.total;
+    return BANCO_CAMPO[banco]!=null ? ref[BANCO_CAMPO[banco]] : null;
+  }
+
+  // ── Gera lista de datas do período ──
+  const dias=[], cur=new Date(de);
+  while(cur<=ate){ dias.push(cur.toISOString().slice(0,10)); cur.setDate(cur.getDate()+1); }
+
+  // ── Lançamentos do banco filtrado ──
+  const lancFiltro = S.lancamentos.filter(l=> !banco || l.banco===banco);
+
+  // NÃO incluir alertas — os lançamentos "A Realizar" já cobrem os itens futuros
+  // Incluir alertas causaria duplicação com lançamentos cadastrados
+
+
+  // Data do último saldo de referência disponível na planilha
+  const ULTIMA_REF = Object.keys(SALDOS_REF).sort().pop(); // '2026-03-16' ou último disponível
+
+  // ── Saldo inicial do período ──
+  // Se existe ref para o dia anterior ao período, usa ela
+  // Senão, recua até achar a última ref disponível e aplica lançamentos realizados
+  let saldoAcum = 0;
+  const diaAnterior = new Date(de); diaAnterior.setDate(diaAnterior.getDate()-1);
+  const diaAntStr = diaAnterior.toISOString().slice(0,10);
+  const refAnt = getSaldoRef(diaAntStr);
+  if(refAnt !== null){
+    saldoAcum = refAnt;
+  } else {
+    // Procura última ref antes do período e acumula realizados entre ela e deStr
+    const refDates = Object.keys(SALDOS_REF).filter(d=>d<deStr).sort();
+    if(refDates.length){
+      const ultimaRef = refDates[refDates.length-1];
+      saldoAcum = getSaldoRef(ultimaRef) ?? 0;
+      // Aplica lançamentos realizados entre ultimaRef e deStr (exclusive)
+      [...lancFiltro].filter(l=>l.status==='Realizado'&&l.data>ultimaRef&&l.data<deStr)
+        .forEach(l=>{ saldoAcum += l.fluxo==='Entrada'?l.valor:-l.valor; });
+    }
+  }
+
+  // ── Agrupa lançamentos por data ──
+  const byDate={};
+  dias.forEach(d=>{byDate[d]={ent:[],sai:[]}});
+  [...lancFiltro].forEach(l=>{
+    if(!byDate[l.data]) return;
+    if(l.fluxo==='Entrada') byDate[l.data].ent.push(l);
+    else byDate[l.data].sai.push(l);
+  });
+
+  // ── Monta linhas ──
+  const hoje = new Date().toISOString().slice(0,10);
+  let totalEnt=0, totalSai=0, diasNeg=0;
+
+  const linhas = dias.map(d=>{
+    const refDia   = getSaldoRef(d);        // saldo verdadeiro da planilha (se disponível)
+    const temRef   = refDia !== null;
+    const isFuturo = d > ULTIMA_REF;        // após a última data da planilha → projeção
+
+    // Entradas e saídas do dia (lançamentos)
+    const ent = byDate[d].ent.reduce((s,l)=>s+l.valor,0);
+    const sai = byDate[d].sai.reduce((s,l)=>s+l.valor,0);
+
+    // Saldo acumulado:
+    // - Período histórico: usa o saldo da planilha diretamente (fonte verdade)
+    // - Período futuro: acumula a partir do último ref + lançamentos
+    let saldoDia, saldoExibido;
+    if(temRef){
+      saldoExibido = refDia;       // saldo real da planilha
+      saldoDia     = refDia - saldoAcum;  // variação calculada
+      saldoAcum    = refDia;
+    } else {
+      saldoDia     = ent - sai;
+      saldoAcum   += saldoDia;
+      saldoExibido = saldoAcum;
+    }
+
+    totalEnt += ent; totalSai += sai;
+    if(saldoExibido<0) diasNeg++;
+
+    // Diferença lançamentos vs variação real (só no histórico)
+    const varReal    = temRef ? saldoDia : null;
+    const lancNet    = ent - sai;
+    const naoExplic  = varReal!==null ? varReal - lancNet : null;
+    const diffLabel  = naoExplic!==null && Math.abs(naoExplic)>0.05
+      ? `<span style="font-size:9px;color:var(--amb);margin-left:3px" title="Var. planilha: ${fmt(varReal)}; não explicado: ${fmt(naoExplic)}">Δ${naoExplic>0?'+':''}${fmt(naoExplic)}</span>`
+      : (temRef && Math.abs(naoExplic||0)<=0.05 && (ent+sai>0)
+          ? '<span style="font-size:9px;color:var(--acc);margin-left:3px">✓</span>' : '');
+
+    const dt=new Date(d+'T12:00:00');
+    const diaSem=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'][dt.getDay()];
+    const isHoje=d===hoje, isPast=d<hoje, isFim=dt.getDay()===0||dt.getDay()===6;
+    const hasMovs=ent>0||sai>0;
+
+    const itens=[...byDate[d].ent,...byDate[d].sai].map(l=>
+      `<span style="font-size:10px;color:${l.fluxo==='Entrada'?'var(--acc)':'var(--red)'};display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px">`+
+      `${l.fluxo==='Entrada'?'↑':'↓'} ${l.desc} ${fmt(l.valor)}${l.status==='A Realizar'?' <em style="opacity:.6">(prev.)</em>':''}</span>`
+    ).join('');
+
+    return `<tr style="background:${isHoje?'rgba(110,231,183,.07)':''};opacity:${!isPast&&!isHoje&&!hasMovs?.35:1}">
+      <td style="white-space:nowrap;font-weight:${isHoje?700:400};color:${isHoje?'var(--acc)':isPast?'var(--txt)':'var(--txt2)'}">
+        ${d.split('-').reverse().join('/')}
+        ${isHoje?'<span style="font-size:9px;background:var(--acc);color:#0B0F1A;padding:1px 5px;border-radius:8px;font-weight:700;margin-left:4px">HOJE</span>':''}
+        ${isFuturo?'<span style="font-size:9px;color:var(--mut);margin-left:2px">(proj.)</span>':''}
+      </td>
+      <td style="font-size:12px;color:${isFim?'var(--mut)':'var(--txt2)'}">${diaSem}</td>
+      <td class="td-amt" style="color:${ent>0?'var(--acc)':'var(--mut)'}">${ent>0?'+'+fmt(ent):'—'}</td>
+      <td class="td-amt" style="color:${sai>0?'var(--red)':'var(--mut)'}">${sai>0?'-'+fmt(sai):'—'}</td>
+      <td class="td-amt" style="color:${saldoDia===0?'var(--mut)':saldoDia>0?'var(--acc)':'var(--red)'}">
+        ${saldoDia===0?'—':((saldoDia>0?'+':'')+fmt(saldoDia))}
+      </td>
+      <td class="td-amt">
+        <span style="font-weight:700;color:${saldoExibido>=0?'var(--acc)':'var(--red)'}">${fmt(saldoExibido)}</span>
+        ${saldoExibido<0?'<span style="font-size:9px;background:var(--red-d);color:var(--red);border-radius:8px;padding:1px 5px;margin-left:4px">⚠</span>':''}
+        ${diffLabel}
+      </td>
+      <td class="hide-mob">${itens||'<span style="color:var(--mut);font-size:11px">—</span>'}</td>
+    </tr>`;
+  });
+
+  // ── KPIs ──
+  const saldoInicial = getSaldoRef(diaAntStr) ?? saldoAcum-(totalEnt-totalSai);
+  const saldoFinal   = saldoAcum;
+  const varFluxo     = saldoFinal - saldoInicial;
+  const labelBanco   = banco || 'Total (caixa)';
+  const labelDe      = deStr.split('-').reverse().join('/');
+  const labelAte     = ateStr.split('-').reverse().join('/');
+
+  document.getElementById('fl-kpis').innerHTML=`
+    <div class="kpi" style="--ka:var(--mut)">
+      <div class="kpi-lbl">Saldo inicial · ${labelBanco}</div>
+      <div class="kpi-val" style="font-size:16px">${fmt(saldoInicial)}</div>
+      <div class="kpi-sub">${labelDe}</div>
+    </div>
+    <div class="kpi" style="--ka:var(--acc)">
+      <div class="kpi-lbl">Entradas lançadas</div>
+      <div class="kpi-val" style="font-size:16px;color:var(--acc)">+${fmt(totalEnt)}</div>
+      <div class="kpi-sub up">No período</div>
+    </div>
+    <div class="kpi" style="--ka:var(--red)">
+      <div class="kpi-lbl">Saídas lançadas</div>
+      <div class="kpi-val" style="font-size:16px;color:var(--red)">-${fmt(totalSai)}</div>
+      <div class="kpi-sub dn">No período</div>
+    </div>
+    <div class="kpi" style="--ka:${varFluxo>=0?'var(--acc)':'var(--red)'}">
+      <div class="kpi-lbl">Variação do período</div>
+      <div class="kpi-val" style="font-size:16px;color:${varFluxo>=0?'var(--acc)':'var(--red)'}">${varFluxo>=0?'+':''}${fmt(varFluxo)}</div>
+      <div class="kpi-sub ${varFluxo>=0?'up':'dn'}">${saldoInicial>0?((varFluxo/saldoInicial)*100).toFixed(1)+'%':''}</div>
+    </div>
+    <div class="kpi" style="--ka:${saldoFinal>=0?'var(--acc)':'var(--red)'}">
+      <div class="kpi-lbl">Saldo final · ${labelBanco}</div>
+      <div class="kpi-val" style="font-size:16px;color:${saldoFinal>=0?'var(--acc)':'var(--red)'}">${fmt(saldoFinal)}</div>
+      <div class="kpi-sub">${labelAte}</div>
+    </div>
+    ${diasNeg>0?`<div class="kpi" style="--ka:var(--red)"><div class="kpi-lbl">Dias negativos</div><div class="kpi-val" style="font-size:16px;color:var(--red)">${diasNeg}</div><div class="kpi-sub dn">Atenção</div></div>`:''}`;
+
+  document.getElementById('fl-alerta').innerHTML = diasNeg>0
+    ? `<div style="background:var(--red-d);border:1px solid rgba(248,113,113,.25);border-radius:var(--rs);padding:12px 16px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">⚠️</span><div><div style="font-size:13px;font-weight:600;color:var(--red)">${diasNeg} dia${diasNeg>1?'s':''} com saldo negativo</div><div style="font-size:11px;color:var(--mut);margin-top:2px">Verifique as linhas em vermelho</div></div></div>`
+    : `<div style="background:var(--acc-d);border:1px solid rgba(110,231,183,.2);border-radius:var(--rs);padding:10px 16px;display:flex;align-items:center;gap:8px"><span>✅</span><span style="font-size:12px;color:var(--acc);font-weight:500">Nenhum dia com saldo negativo no período</span></div>`;
+
+  document.getElementById('fl-tbody').innerHTML = linhas.join('');
+}
+
+
+// ─── PERSISTÊNCIA localStorage ────────────────────────────────────────────
+const STORAGE_KEY = 'fincontrol_v22';
+
+function saveState() {
+  try {
+    // Lançamentos novos (adicionados pelo usuário, id >= 246)
+    const lancamentosNovos = S.lancamentos.filter(l => l.id >= 246);
+
+    // Alterações nos lançamentos da base (id < 246) — salva só os que foram modificados
+    // Compara status, data, valor, fluxo com o original do código
+    const lancamentosEditados = S.lancamentos
+      .filter(l => l.id < 246)
+      .reduce((acc, l) => { acc[l.id] = l; return acc; }, {});
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      lancamentosNovos,
+      lancamentosEditados,
+      bancos:    S.bancos,
+      orcamento: S.orcamento,
+      nextId:    S.nextId
+    }));
+  } catch(e) { console.warn('Erro ao salvar:', e); }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+
+    // Aplica alterações nos lançamentos da base (status, data, valor etc.)
+    if (saved.lancamentosEditados) {
+      S.lancamentos = S.lancamentos.map(l => {
+        const edit = saved.lancamentosEditados[l.id];
+        return edit ? { ...l, ...edit } : l;
+      });
+    }
+
+    // Adiciona lançamentos novos do usuário (id >= 246)
+    if (saved.lancamentosNovos && saved.lancamentosNovos.length > 0) {
+      const ids = new Set(S.lancamentos.map(l => l.id));
+      saved.lancamentosNovos.forEach(l => { if (!ids.has(l.id)) S.lancamentos.push(l); });
+    }
+
+    // Compatibilidade com versões antigas
+    if (saved.lancamentosUsuario) {
+      const ids = new Set(S.lancamentos.map(l => l.id));
+      saved.lancamentosUsuario.forEach(l => { if (!ids.has(l.id)) S.lancamentos.push(l); });
+    }
+
+    if (saved.orcamento) S.orcamento = saved.orcamento;
+    if (saved.nextId)    S.nextId    = saved.nextId;
+    if (saved.bancos) {
+      S.bancos = S.bancos.map(defaultB => {
+        const savedB = saved.bancos.find(b => b.id === defaultB.id);
+        if (!savedB) return defaultB;
+        if (!savedB.dataAbertura || savedB.saldoAbertura === undefined) {
+          return { ...savedB, saldoAbertura: defaultB.saldoAbertura, dataAbertura: defaultB.dataAbertura };
+        }
+        return { ...defaultB, ...savedB };
+      });
+    }
+  } catch(e) { console.warn('Erro ao carregar:', e); }
+}
+
+// ─── INTERCEPTA FUNÇÕES DE ESCRITA ────────────────────────────────────────
+
+// Intercepta todas as funções de escrita para salvar automaticamente
+const _saveLanc  = saveLanc;  saveLanc  = function(e){ _saveLanc(e);  saveState(); };
+const _saveConta = saveConta; saveConta = function(e){ _saveConta(e); saveState(); };
+const _saveOrc   = saveOrc;   saveOrc   = function(){ _saveOrc();    saveState(); };
+const _delLanc   = delLanc;   delLanc   = function(id){ _delLanc(id); saveState(); };
+const _delAlerta = delAlerta; delAlerta = function(id){ _delAlerta(id); saveState(); };
+
+// ─── INIT ─────────────────────────────────────────────────────────────────
+loadState();
+recalcBancos();
+initDashPeriod();
+initFluxoFiltros();
+renderDash();
+</script>
+
+<script>
+// ─── GOOGLE DRIVE SYNC ────────────────────────────────────────────────────
+// Instruções: crie um projeto em console.cloud.google.com,
+// ative a Google Drive API e o Google Identity Services,
+// crie credenciais OAuth 2.0 (tipo "Aplicativo da Web"),
+// adicione a URL do seu Netlify como "Origem JavaScript autorizada",
+// e cole o Client ID abaixo.
+const GDRIVE_CLIENT_ID = '781993095206-s0t9nea1ef5qtvben5pitngi21e6iavv.apps.googleusercontent.com';
+const GDRIVE_SCOPES    = 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/gmail.send';
+const BACKUP_EMAIL     = 'diegoonunes50@gmail.com'; // e-mail que receberá o backup
+const GDRIVE_FILE_NAME = 'myfinance-data.json';
+
+let gdriveToken    = null;
+let gdriveFileId   = null;
+let gdriveReady    = false;
+
+// ── Inicializa Google Identity Services ──
+function gdriveInit(){
+  if(!window.google || !window.google.accounts) return;
+  gdriveReady = true;
+  const saved = localStorage.getItem('mf_gdrive');
+  if(saved){
+    try{
+      const d = JSON.parse(saved);
+      gdriveToken  = d.token;
+      gdriveFileId = d.fileId || null;
+      updateDriveUI(d.name, d.email, d.picture);
+      updateDriveStatusBadge();
+      // Carrega dados do Drive automaticamente ao abrir/atualizar o app
+      if(gdriveToken) gdriveLoad(true).then(()=>checkWeeklyBackup()).catch(()=>{});
+    }catch(e){}
+  }
+  updateDriveStatusBadge();
+}
+
+// ── Conectar ──
+function gdriveConnect(){
+  if(!gdriveReady){ toast('Google API não carregada — verifique o Client ID'); return; }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope:     GDRIVE_SCOPES,
+    callback:  async (resp) => {
+      if(resp.error){ toast('Erro ao conectar: '+resp.error); return; }
+      gdriveToken = resp.access_token;
+      // Busca info do usuário
+      const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',
+        {headers:{Authorization:'Bearer '+gdriveToken}}).then(r=>r.json());
+      updateDriveUI(info.name, info.email, info.picture);
+      localStorage.setItem('mf_gdrive', JSON.stringify({
+        token:gdriveToken, fileId:gdriveFileId,
+        name:info.name, email:info.email, picture:info.picture,
+        scope:'appdata'
+      }));
+      updateDriveStatusBadge();
+      toast('Google Drive conectado ✓');
+      // Tenta carregar dados existentes
+      await gdriveLoad(true);
+    }
+  });
+  client.requestAccessToken();
+}
+
+// ── Salvar no Drive ──
+async function gdriveSave(){
+  if(!gdriveToken){ toast('Conecte ao Google Drive primeiro'); return; }
+  toast('Salvando no Drive...');
+  const data = {
+    lancamentosNovos:    S.lancamentos.filter(l=>l.id>=246),
+    lancamentosEditados: S.lancamentos.filter(l=>l.id<246).reduce((acc,l)=>{ acc[l.id]=l; return acc; }, {}),
+    bancos:    S.bancos,
+    orcamento: S.orcamento,
+    nextId:    S.nextId,
+    savedAt:   new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+
+  try{
+    let res;
+    if(gdriveFileId){
+      // Atualiza arquivo existente
+      res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${gdriveFileId}?uploadType=media`,{
+        method:'PATCH', headers:{Authorization:'Bearer '+gdriveToken,'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      }).then(r=>r.json());
+    } else {
+      // Cria arquivo novo no appDataFolder
+      const meta = {name:GDRIVE_FILE_NAME, parents:['appDataFolder']};
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(meta)],{type:'application/json'}));
+      form.append('file', blob);
+      res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
+        method:'POST', headers:{Authorization:'Bearer '+gdriveToken}, body:form
+      }).then(r=>r.json());
+      gdriveFileId = res.id;
+      // Atualiza localStorage com o fileId
+      const saved = JSON.parse(localStorage.getItem('mf_gdrive')||'{}');
+      saved.fileId = gdriveFileId;
+      localStorage.setItem('mf_gdrive', JSON.stringify(saved));
+    }
+    const ts = new Date().toLocaleString('pt-BR');
+    document.getElementById('drive-last-sync').textContent = 'Último sync: '+ts;
+    updateDriveStatusBadge(ts);
+    toast('Salvo no Google Drive ✓');
+  }catch(e){
+    toast('Erro ao salvar no Drive');
+    console.error(e);
+  }
+}
+
+// ── Carregar do Drive ──
+async function gdriveLoad(silent=false){
+  if(!gdriveToken){ if(!silent) toast('Conecte ao Google Drive primeiro'); return; }
+  if(!silent) toast('Carregando do Drive...');
+  try{
+    // Busca arquivo pelo nome no appDataFolder
+    if(!gdriveFileId){
+      const list = await fetch(
+        `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${GDRIVE_FILE_NAME}'`,
+        {headers:{Authorization:'Bearer '+gdriveToken}}
+      ).then(r=>r.json());
+      if(list.files && list.files.length > 0){
+        gdriveFileId = list.files[0].id;
+        const saved = JSON.parse(localStorage.getItem('mf_gdrive')||'{}');
+        saved.fileId = gdriveFileId;
+        localStorage.setItem('mf_gdrive', JSON.stringify(saved));
+      } else {
+        if(!silent) toast('Nenhum arquivo encontrado no Drive — salve primeiro');
+        return;
+      }
+    }
+    const data = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${gdriveFileId}?alt=media`,
+      {headers:{Authorization:'Bearer '+gdriveToken}}
+    ).then(r=>r.json());
+
+    // Aplica os dados
+    // 1. Alterações em lançamentos da base (status, data, valor etc.)
+    if(data.lancamentosEditados){
+      S.lancamentos = S.lancamentos.map(l => {
+        const edit = data.lancamentosEditados[l.id];
+        return edit ? { ...l, ...edit } : l;
+      });
+    }
+    // 2. Lançamentos novos do usuário
+    if(data.lancamentosNovos && data.lancamentosNovos.length>0){
+      const ids = new Set(S.lancamentos.map(l=>l.id));
+      data.lancamentosNovos.forEach(l=>{ if(!ids.has(l.id)) S.lancamentos.push(l); });
+    }
+    // Compatibilidade com versão anterior
+    if(data.lancamentosUsuario && !data.lancamentosNovos){
+      const ids = new Set(S.lancamentos.map(l=>l.id));
+      data.lancamentosUsuario.forEach(l=>{ if(!ids.has(l.id)) S.lancamentos.push(l); });
+    }
+    if(data.bancos)    S.bancos    = S.bancos.map(b=>{ const s=data.bancos.find(x=>x.id===b.id); return s?{...b,...s}:b; });
+    if(data.orcamento) S.orcamento = data.orcamento;
+    if(data.nextId)    S.nextId    = data.nextId;
+
+    // Recalcula saldos e re-renderiza tudo
+    recalcBancos();
+    saveState(); // Salva no localStorage para persistir offline também
+    renderDash();
+    // Re-renderiza a aba ativa se não for dashboard
+    if(currentTab==='lancamentos') renderLanc();
+    if(currentTab==='alertas')     renderAlertas();
+    if(currentTab==='patrimonio')  renderPat();
+    if(currentTab==='orcamento')   renderOrc();
+    if(currentTab==='fluxo')       renderFluxo();
+
+    const ts = data.savedAt ? new Date(data.savedAt).toLocaleString('pt-BR') : '—';
+    document.getElementById('drive-last-sync').textContent = 'Dados de: '+ts;
+    updateDriveStatusBadge(ts);
+    if(!silent) toast('Dados carregados do Drive ✓');
+  }catch(e){
+    if(!silent) toast('Erro ao carregar do Drive');
+    console.error(e);
+  }
+}
+
+// ── Desconectar ──
+function gdriveDisconnect(){
+  if(!confirm('Desconectar do Google Drive? Os dados locais não serão apagados.')) return;
+  gdriveToken  = null;
+  gdriveFileId = null;
+  localStorage.removeItem('mf_gdrive');
+  document.getElementById('drive-connected').style.display    = 'none';
+  document.getElementById('drive-not-connected').style.display = 'block';
+  updateDriveStatusBadge();
+  toast('Google Drive desconectado');
+}
+
+// ── UI helpers ──
+function updateDriveUI(name, email, picture){
+  document.getElementById('drive-not-connected').style.display = 'none';
+  document.getElementById('drive-connected').style.display     = 'block';
+  document.getElementById('drive-user-name').textContent  = name  || '';
+  document.getElementById('drive-user-email').textContent = email || '';
+  if(picture){
+    document.getElementById('drive-user-img').innerHTML =
+      `<img src="${picture}" style="width:32px;height:32px;border-radius:50%;object-fit:cover">`;
+  }
+}
+
+function updateDriveStatusBadge(syncTime){
+  const el = document.getElementById('gdrive-status');
+  if(!gdriveToken){
+    el.innerHTML = `<button class="btn btn-s" style="font-size:11px;padding:4px 10px;gap:5px" onclick="document.getElementById('modal-drive').classList.add('on')">
+      ☁️ Drive
+    </button>`;
+  } else {
+    el.innerHTML = `<button class="btn btn-s" style="font-size:11px;padding:4px 10px;gap:5px;color:var(--acc);border-color:rgba(110,231,183,.3)" onclick="document.getElementById('modal-drive').classList.add('on')">
+      ☁️ <span style="color:var(--acc)">Sincronizado</span>
+    </button>`;
+  }
+}
+
+// Salva no Drive toda vez que saveState é chamado (se conectado)
+const _saveStateOrig = saveState;
+saveState = function(){
+  _saveStateOrig();
+  if(gdriveToken) gdriveSave();
+};
+
+// ── Importar backup local ──
+function importBackup(input){
+  const file = input.files[0];
+  if(!file){ return; }
+  if(!confirm(`Importar o arquivo "${file.name}"?\n\nIsso vai sobrescrever os dados atuais com os dados do backup.`)) {
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+
+      // Aplica lançamentos editados (alterações nos 245 da base)
+      if(data.lancamentosEditados){
+        S.lancamentos = S.lancamentos.map(l => {
+          const edit = data.lancamentosEditados[l.id];
+          return edit ? {...l, ...edit} : l;
+        });
+      }
+      // Aplica lançamentos novos (id >= 246)
+      if(data.lancamentosNovos && data.lancamentosNovos.length > 0){
+        // Remove novos existentes e reinsere do backup
+        S.lancamentos = S.lancamentos.filter(l => l.id < 246);
+        data.lancamentosNovos.forEach(l => S.lancamentos.push(l));
+      }
+      if(data.bancos)    S.bancos    = S.bancos.map(b=>{ const s=data.bancos.find(x=>x.id===b.id); return s?{...b,...s}:b; });
+      if(data.orcamento) S.orcamento = data.orcamento;
+      if(data.nextId)    S.nextId    = data.nextId;
+
+      recalcBancos();
+      saveState();
+      // Re-renderiza tudo
+      renderDash();
+      if(currentTab==='lancamentos') renderLanc();
+      if(currentTab==='alertas')     renderAlertas();
+      if(currentTab==='patrimonio')  renderPat();
+      if(currentTab==='orcamento')   renderOrc();
+      if(currentTab==='fluxo')       renderFluxo();
+
+      const ts = data.savedAt ? new Date(data.savedAt).toLocaleString('pt-BR') : '—';
+      toast(`Backup importado ✓ — dados de ${ts}`);
+      document.getElementById('modal-drive').classList.remove('on');
+    } catch(err){
+      toast('Erro ao ler o arquivo — verifique se é um backup válido');
+      console.error(err);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── Exportar backup local ──
+function exportBackup(){
+  const data = {
+    lancamentosNovos:    S.lancamentos.filter(l=>l.id>=246),
+    lancamentosEditados: S.lancamentos.filter(l=>l.id<246).reduce((acc,l)=>{ acc[l.id]=l; return acc; }, {}),
+    bancos:    S.bancos,
+    orcamento: S.orcamento,
+    nextId:    S.nextId,
+    savedAt:   new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const ts   = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = `myfinance-backup-${ts}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Backup exportado ✓');
+}
+
+// ── Enviar backup por e-mail ──
+async function sendBackupEmail(manual=false){
+  if(!gdriveToken){ if(manual) toast('Conecte ao Google Drive primeiro'); return; }
+
+  const data = {
+    lancamentosNovos:    S.lancamentos.filter(l=>l.id>=246),
+    lancamentosEditados: S.lancamentos.filter(l=>l.id<246).reduce((acc,l)=>{ acc[l.id]=l; return acc; }, {}),
+    bancos:    S.bancos,
+    orcamento: S.orcamento,
+    nextId:    S.nextId,
+    savedAt:   new Date().toISOString()
+  };
+
+  const ts       = new Date().toLocaleDateString('pt-BR');
+  const jsonStr  = JSON.stringify(data, null, 2);
+  const b64File  = btoa(unescape(encodeURIComponent(jsonStr)));
+
+  // Resumo financeiro para o corpo do e-mail
+  const pat   = S.bancos.reduce((s,b)=>s+b.valor,0);
+  const hoje  = new Date().toISOString().slice(0,10);
+  const em7   = new Date(); em7.setDate(em7.getDate()+7);
+  const em7s  = em7.toISOString().slice(0,10);
+  const aRec  = S.lancamentos.filter(l=>l.status==='A Realizar'&&l.fluxo==='Entrada'&&l.data>=hoje&&l.data<=em7s).reduce((s,l)=>s+l.valor,0);
+  const aPag  = S.lancamentos.filter(l=>l.status==='A Realizar'&&l.fluxo==='Saída'  &&l.data>=hoje&&l.data<=em7s).reduce((s,l)=>s+l.valor,0);
+
+  const bodyHtml = `
+<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto">
+  <h2 style="color:#6EE7B7;border-bottom:2px solid #6EE7B7;padding-bottom:8px">
+    📊 MyFinance — Backup Semanal ${ts}
+  </h2>
+  <table style="width:100%;border-collapse:collapse;margin:16px 0">
+    <tr style="background:#f5f5f5">
+      <td style="padding:10px;font-weight:bold">💰 Patrimônio Total</td>
+      <td style="padding:10px;text-align:right;font-weight:bold;color:#059669">
+        R$ ${pat.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:10px">📥 A receber (próx. 7 dias)</td>
+      <td style="padding:10px;text-align:right;color:#059669">
+        +R$ ${aRec.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+      </td>
+    </tr>
+    <tr style="background:#f5f5f5">
+      <td style="padding:10px">📤 A pagar (próx. 7 dias)</td>
+      <td style="padding:10px;text-align:right;color:#dc2626">
+        -R$ ${aPag.toLocaleString('pt-BR',{minimumFractionDigits:2})}
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:10px;font-weight:bold">📈 Meta R$ 1.000.000</td>
+      <td style="padding:10px;text-align:right;font-weight:bold">
+        ${(pat/1000000*100).toFixed(1)}% concluído
+      </td>
+    </tr>
+  </table>
+  <p style="color:#666;font-size:12px">
+    O arquivo de backup está em anexo. Guarde-o em local seguro.<br>
+    Gerado automaticamente pelo MyFinance em ${new Date().toLocaleString('pt-BR')}.
+  </p>
+</div>`;
+
+  // Monta e-mail MIME com anexo
+  const boundary = 'boundary_mf_' + Date.now();
+  const emailParts = [
+    `To: ${BACKUP_EMAIL}`,
+    `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(`📊 MyFinance — Backup Semanal ${ts}`)))}?=`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    '',
+    bodyHtml,
+    '',
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    `Content-Disposition: attachment; filename="myfinance-backup-${new Date().toISOString().slice(0,10)}.json"`,
+    'Content-Transfer-Encoding: base64',
+    '',
+    b64File,
+    '',
+    `--${boundary}--`
+  ].join('\r\n');
+
+  const encodedEmail = btoa(unescape(encodeURIComponent(emailParts)))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+
+  try{
+    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer '+gdriveToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ raw: encodedEmail })
+    });
+    if(res.ok){
+      // Salva data do último envio
+      localStorage.setItem('mf_last_backup_email', new Date().toISOString().slice(0,10));
+      if(manual) toast('Backup enviado para '+BACKUP_EMAIL+' ✓');
+      else toast('📧 Backup semanal enviado por e-mail ✓');
+    } else {
+      const err = await res.json();
+      console.error('Gmail error:', err);
+      if(manual) toast('Erro ao enviar e-mail — verifique as permissões');
+    }
+  } catch(e){
+    console.error(e);
+    if(manual) toast('Erro ao enviar e-mail');
+  }
+}
+
+// ── Verificação automática semanal (toda segunda-feira) ──
+function checkWeeklyBackup(){
+  if(!gdriveToken) return;
+  const hoje      = new Date();
+  const diaSemana = hoje.getDay(); // 0=Dom, 1=Seg
+  if(diaSemana !== 1) return;      // Só roda às segundas
+
+  const ultimoEnvio = localStorage.getItem('mf_last_backup_email');
+  if(ultimoEnvio){
+    const diff = Math.round((hoje - new Date(ultimoEnvio)) / 86400000);
+    if(diff < 6) return; // Já enviou nos últimos 6 dias
+  }
+  // Aguarda 3 segundos para não disparar junto com o carregamento
+  setTimeout(() => sendBackupEmail(false), 3000);
+}
+
+// Carrega Google API
+(function(){
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true;
+  s.defer = true;
+  s.onload = () => setTimeout(gdriveInit, 500);
+  document.head.appendChild(s);
+})();
+
+// Mostra botão Drive imediatamente (sem esperar Google API)
+updateDriveStatusBadge();
+</script>
+</div><!-- /app-wrapper -->
+
+<script>
+// ─── AUTH ──────────────────────────────────────────────────────────────────
+// 🔑 ALTERE A SENHA AQUI:
+const APP_PASSWORD = 'Dieg@0910';
+const SESSION_KEY  = 'fc_auth';
+
+function tryUnlock() {
+  const input = document.getElementById('lock-input').value;
+  if (input === APP_PASSWORD) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('lockscreen').style.display = 'none';
+    document.getElementById('app-wrapper').style.display = 'block';
+    document.getElementById('lock-input').value = '';
+  } else {
+    const err = document.getElementById('lock-error');
+    err.textContent = 'Senha incorreta. Tente novamente.';
+    document.getElementById('lock-input').value = '';
+    document.getElementById('lock-input').focus();
+    // Shake animation
+    const card = document.getElementById('lock-input').closest('div[style*="background:#1E2940"]');
+    card.style.transition = 'transform .08s';
+    let n = 0;
+    const shake = setInterval(() => {
+      card.style.transform = n % 2 === 0 ? 'translateX(6px)' : 'translateX(-6px)';
+      if (++n > 5) { clearInterval(shake); card.style.transform = ''; }
+    }, 60);
+    setTimeout(() => err.textContent = '', 3000);
+  }
+}
+
+function togglePwd() {
+  const inp = document.getElementById('lock-input');
+  const btn = document.getElementById('eye-btn');
+  if (inp.type === 'password') { inp.type = 'text';     btn.textContent = '🙈'; }
+  else                          { inp.type = 'password'; btn.textContent = '👁';  }
+}
+
+// Se já autenticou nesta sessão, pula o login direto
+(function() {
+  if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    document.getElementById('lockscreen').style.display = 'none';
+    document.getElementById('app-wrapper').style.display = 'block';
+  } else {
+    setTimeout(() => document.getElementById('lock-input').focus(), 100);
+  }
+})();
+</script>
+
+</body>
+</html>
