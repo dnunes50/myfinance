@@ -200,7 +200,12 @@ tr:hover td{background:rgba(255,255,255,.02)}
 /* Mobile nav icon size */
 .mob-item-icon{font-size:16px}
 
-/* Chart cards */
+/* Datalist fornecedor */
+input[list]{background:var(--sur);border:1px solid var(--brd2);border-radius:var(--rs);padding:8px 12px;color:var(--txt);font-size:13px;font-family:'Sora',sans-serif;outline:none;box-sizing:border-box}
+input[list]:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-d)}
+.orc-mes-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--brd2);background:var(--sur);color:var(--mut);font-family:'Sora',sans-serif;transition:all .15s}
+.orc-mes-btn.on{background:var(--acc-d);color:var(--acc);border-color:rgba(110,231,183,.3)}
+.orc-mes-btn:hover{border-color:var(--acc);color:var(--acc)}
 .chart-card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:20px}
 .chart-title{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:2px}
 .chart-sub{font-size:11px;color:var(--mut);margin-bottom:16px}
@@ -409,7 +414,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   </div>
   <div class="tbl-wrap">
     <table>
-      <thead><tr><th>Data</th><th>Descrição</th><th class="hide-mob">Plano de Contas</th><th class="hide-mob">Tipo</th><th class="hide-mob">Banco</th><th>Status</th><th>Fluxo</th><th style="text-align:right">Valor</th><th></th></tr></thead>
+      <thead><tr><th>Data</th><th>Descrição</th><th class="hide-mob">Fornecedor</th><th class="hide-mob">Plano de Contas</th><th class="hide-mob">Tipo</th><th class="hide-mob">Banco</th><th>Status</th><th>Fluxo</th><th style="text-align:right">Valor</th><th></th></tr></thead>
       <tbody id="lanc-tbody"></tbody>
     </table>
   </div>
@@ -492,14 +497,57 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <div class="page" id="pg-orcamento">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div>
-      <div style="font-size:18px;font-weight:700">Orçamento — Março 2026</div>
-      <div style="font-size:12px;color:var(--mut)">Orçado vs Realizado</div>
+      <div style="font-size:18px;font-weight:700">Orçamento</div>
+      <div style="font-size:12px;color:var(--mut)" id="orc-subtitle">Orçado vs Realizado vs Projetado</div>
     </div>
-    <button class="btn btn-p" onclick="openModal('orc-edit')">Editar orçamento</button>
+    <button class="btn btn-p" onclick="openModal('orc-edit')">⚙ Parametrizar</button>
   </div>
+
+  <!-- Seletor de meses (múltiplo) -->
+  <div style="margin-bottom:16px">
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:8px">Selecione os meses</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="orc-mes-btns">
+      <button class="orc-mes-btn" data-mes="01/26" onclick="toggleOrcMes(this)">Jan/26</button>
+      <button class="orc-mes-btn" data-mes="02/26" onclick="toggleOrcMes(this)">Fev/26</button>
+      <button class="orc-mes-btn on" data-mes="03/26" onclick="toggleOrcMes(this)">Mar/26</button>
+      <button class="orc-mes-btn" data-mes="04/26" onclick="toggleOrcMes(this)">Abr/26</button>
+      <button class="orc-mes-btn" data-mes="05/26" onclick="toggleOrcMes(this)">Mai/26</button>
+      <button class="orc-mes-btn" data-mes="06/26" onclick="toggleOrcMes(this)">Jun/26</button>
+      <button class="orc-mes-btn" data-mes="07/26" onclick="toggleOrcMes(this)">Jul/26</button>
+      <button class="orc-mes-btn" data-mes="08/26" onclick="toggleOrcMes(this)">Ago/26</button>
+      <button class="orc-mes-btn" data-mes="09/26" onclick="toggleOrcMes(this)">Set/26</button>
+      <button class="orc-mes-btn" data-mes="10/26" onclick="toggleOrcMes(this)">Out/26</button>
+      <button class="orc-mes-btn" data-mes="11/26" onclick="toggleOrcMes(this)">Nov/26</button>
+      <button class="orc-mes-btn" data-mes="12/26" onclick="toggleOrcMes(this)">Dez/26</button>
+      <button class="btn btn-s btn-sm" onclick="selectAllOrcMes()">Todos</button>
+      <button class="btn btn-s btn-sm" onclick="selectYTDOrcMes()">YTD</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
   <div class="kpi-grid" style="margin-bottom:20px" id="orc-kpis"></div>
+
+  <!-- Alerta de estouro -->
+  <div id="orc-alerta" style="margin-bottom:16px"></div>
+
+  <!-- Tabela detalhada -->
   <div class="sec-title">Detalhamento por categoria</div>
-  <div id="orc-list"></div>
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Categoria</th>
+          <th style="text-align:right">Orçado</th>
+          <th style="text-align:right">Realizado</th>
+          <th style="text-align:right">A Realizar</th>
+          <th style="text-align:right">Projetado total</th>
+          <th style="text-align:right">%</th>
+          <th style="text-align:center">Status</th>
+        </tr>
+      </thead>
+      <tbody id="orc-tbody"></tbody>
+    </table>
+  </div>
 </div>
 
 <!-- MODAL -->
@@ -649,6 +697,39 @@ document.getElementById('pat-date').textContent = 'Atualizado em '+now.toLocaleD
 const PLANOS=['Salário CLT','13º salário / Férias','PLR','Pro labore DV SHOP','Pro labore IMWT','Rendimento','Venda Casa R$442.893','Outras Receitas','Imposto de Renda','Nubank','C6','Santander','XP','Prestação Apto','Aluguel','Condomínio','Luz','Água','Gás','Diarista/Mensalista','Supermercado','Feira/Padaria','IPTU','Telefones (fixo e celular)','Repasse Bianca','Seguro do automóvel','IPVA/DPVAT/Licenciamento','Combustível','Outras Despesas','Pós-graduação/MBA','Idiomas','Médico','Medicamentos','Academia','Roupas/Acessórios','Corte de Cabelo','Manicure/Sombrancelha','Presentes','Viagens/ passeios','Onil','Investimento'];
 const BANCOS=['C6 Bank','Nubank','Santander','Clear','XP','Binance','Onil'];
 const TIPOS=['Receita','Cartão de Crédito','Despesa com Moradia','Despesa com Transporte','Despesa com Educação','Despesa com Saúde','Despesa com Pessoais','Despesa com Lazer','Investimento'];
+const FORNECEDORES_BASE=[
+  // Pessoas físicas
+  "Alessandra Cassimiro","Aldeci Cassimiro","Amanda Cassimiro","Bianca Martins",
+  "Daniel Lorena","Diego Cassimiro","Diego Damaceno","Dorival","Edmilson",
+  "Felipe","Jorge Souza","Jordão Cunha","Lucas Vargas","Marcia Ferreira",
+  "Marinete","Michael Pereira","Monique Martins","Raissa Fonseca",
+  "Reginaldo Tenis","Renato Correa","Rubens Marconi","Sabrina Ramos",
+  "Silvia Nascimento","Tatiana Tsuha","Tiago Cassimiro","Vinicius Fonseca",
+  // Empresas e serviços
+  "Acta Robotics","Ademicon","BANCO XP S A","Binance","Borracharia Columbia",
+  "C6 Bank","CASHBACK ATOMOS","CASHBACK XP","DV SHOP","Edevaldo Eletricista",
+  "Hadja Imobiliária","IMWT LTDA","IOF Cheque Especial","K10 TV",
+  "Marmoraria","Onil Exchange","Porto Seguro Capitalização","Santander",
+  "Santos Materiais","Tecnico Vivo","Vintage Club","XP Investimentos",
+  // Veículos e impostos
+  "IPVA Audi","IPVA Clio","Licenciamento Audi","Licenciamento Clio",
+  "Multa Audi","Multa Clio","Estacionamento",
+  // Recorrentes
+  "Caixa Econômica Federal","Rendimento CDB","Rendimento Onil",
+  "Ajuste Saldo","Implante Capilar",
+];
+
+// Retorna lista dinâmica de fornecedores (base + novos adicionados pelo usuário)
+function getFornecedores(){
+  const doHistorico = [...new Set(S.lancamentos.map(l=>l.fornecedor).filter(f=>f&&f.trim()))];
+  const todos = [...new Set([...FORNECEDORES_BASE, ...doHistorico])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  return todos;
+}
+
+// Gera datalist HTML para fornecedores
+function fornDatalist(id='forn-list'){
+  return `<datalist id="${id}">${getFornecedores().map(f=>`<option value="${f.replace(/"/g,'&quot;')}">`).join('')}</datalist>`;
+}
 
 // ─── STATE ────────────────────────────────────────────────────────────────
 let S={
@@ -924,20 +1005,32 @@ let S={
     {id:6,nome:'XP',      saldoAbertura:0,          dataAbertura:'2025-12-31', valor:0,         classe:'Renda Fixa',               cor:'#3B82F6'},
     {id:7,nome:'Binance', saldoAbertura:0,          dataAbertura:'2025-12-31', valor:0,         classe:'Cripto',                   cor:'#FCD34D'},
   ],
-  orcamento:[
-    {cat:'Cartão de Crédito',orcado:8000,realizado:7436.74},
-    {cat:'Moradia (Aluguel)',orcado:6100,realizado:6020},
-    {cat:'Condomínio',orcado:800,realizado:845.58},
-    {cat:'IPTU',orcado:85,realizado:84.68},
-    {cat:'Água/Luz/Gás',orcado:300,realizado:0},
-    {cat:'Diarista/Mensalista',orcado:600,realizado:0},
-    {cat:'Transporte',orcado:700,realizado:685.68},
-    {cat:'Saúde',orcado:500,realizado:0},
-    {cat:'Educação',orcado:0,realizado:0},
-    {cat:'Pessoais',orcado:500,realizado:244.24},
-    {cat:'Lazer',orcado:500,realizado:59.46},
-    {cat:'Investimento',orcado:5000,realizado:16658.85},
-  ],
+  orcamento:{
+    // Orçamento mensal por categoria — pode ter valor diferente por mês
+    // plano: nome exato do Plano de Contas dos lançamentos
+    categorias:[
+      {cat:'Cartão de Crédito',  planos:['Nubank','C6','Santander','XP'],        mensal:{default:8000}},
+      {cat:'Aluguel/Moradia',    planos:['Aluguel','Prestação Apto'],             mensal:{default:6100}},
+      {cat:'Condomínio',         planos:['Condomínio'],                           mensal:{default:800}},
+      {cat:'IPTU',               planos:['IPTU'],                                 mensal:{default:85}},
+      {cat:'Água/Luz/Gás',       planos:['Água','Luz','Gás'],                     mensal:{default:300}},
+      {cat:'Diarista/Mensalista',planos:['Diarista/Mensalista'],                  mensal:{default:600}},
+      {cat:'Transporte',         planos:['Combustível','IPVA/DPVAT/Licenciamento','Seguro do automóvel'], mensal:{default:700}},
+      {cat:'Saúde',              planos:['Médico','Medicamentos'],                mensal:{default:500}},
+      {cat:'Educação',           planos:['Pós-graduação/MBA','Idiomas'],          mensal:{default:0}},
+      {cat:'Pessoais',           planos:['Outras Despesas','Corte de Cabelo','Manicure/Sombrancelha','Roupas/Acessórios'], mensal:{default:500}},
+      {cat:'Lazer',              planos:['Viagens/ passeios','Presentes','Futebol'], mensal:{default:500}},
+      {cat:'Telefones',          planos:['Telefones (fixo e celular)'],           mensal:{default:200}},
+      {cat:'Repasse Bianca',     planos:['Repasse Bianca'],                       mensal:{default:0}},
+      {cat:'Devolução DVSHOP',   planos:['Devolução DVSHOP'],                    mensal:{default:0}},
+    ],
+    // Investimentos — fluxo patrimonial, exibidos separadamente no orçamento
+    investimentos:[
+      {cat:'Onil',      planos:['Onil','Investimento'], mensal:{default:5000}},
+      {cat:'Binance',   planos:['Binance'],              mensal:{default:0}},
+      {cat:'Renda Fixa',planos:['Renda Fixa'],           mensal:{default:0}},
+    ]
+  },
   evolucao:[
     {mes:'Dez/25', nubank:71212.53, c6:1347.71,    san:0.80, clear:155.24, bin:0,       onil:309719.79, pat:382436.07},
     {mes:'Jan/26', nubank:5081.86,  c6:18333.04,   san:0,    clear:155.24, bin:0,       onil:362285.00, pat:385855.14},
@@ -1126,6 +1219,21 @@ function renderDash(){
   const pct   = Math.min(100, pat/meta*100);
   const falta = meta - pat;
 
+  // Projeção fim do ano (31/12/2026) — pat atual + todos A Realizar até lá
+  // Inclui atrasados (data <= hoje que ainda estão A Realizar)
+  const fimAno = '2026-12-31';
+  const hojeCalc = new Date().toISOString().slice(0,10);
+  const entFimAno = S.lancamentos
+    .filter(l => l.status==='A Realizar' && l.fluxo==='Entrada' && l.data <= fimAno)
+    .reduce((s,l)=>s+l.valor,0);
+  const saiFimAno = S.lancamentos
+    .filter(l => l.status==='A Realizar' && l.fluxo==='Saída' && l.data <= fimAno)
+    .reduce((s,l)=>s+l.valor,0);
+  const patFimAno  = pat + entFimAno - saiFimAno;
+  const pctFimAno  = Math.min(100, patFimAno/meta*100);
+  const faltaFimAno = meta - patFimAno;
+  const varFimAno  = patFimAno - pat;
+
   const rec    = lancPeriodo.filter(l=>l.fluxo==='Entrada').reduce((s,l)=>s+l.valor,0);
   const des    = lancPeriodo.filter(l=>l.fluxo==='Saída').reduce((s,l)=>s+l.valor,0);
   const saldo  = rec - des;
@@ -1145,25 +1253,81 @@ function renderDash(){
     const ref = SALDOS_REF[d];
     return ref ? ref.total : null;
   };
-  const diaAntDash = deStr ? new Date(new Date(deStr+'T00:00:00').getTime() - 86400000).toISOString().slice(0,10) : null;
-  const saldoIniDash = diaAntDash ? (getSaldoRefTotal(diaAntDash) ?? getSaldoRefTotal(Object.keys(SALDOS_REF).filter(d=>d<=diaAntDash).sort().pop())) : null;
-  const saldoFimDash = ateStr ? (getSaldoRefTotal(ateStr) ?? null) : null;
+  const diaAntDash   = deStr ? new Date(new Date(deStr+'T00:00:00').getTime()-86400000).toISOString().slice(0,10) : null;
+  const saldoIniDash = diaAntDash
+    ? (getSaldoRefTotal(diaAntDash) ?? getSaldoRefTotal(Object.keys(SALDOS_REF).filter(d=>d<=diaAntDash).sort().pop()))
+    : null;
+
+  // Saldo projetado = saldo atual + A Realizar futuros dentro do período
+  const aRealizarPeriodo = S.lancamentos.filter(l => {
+    if(l.status !== 'A Realizar') return false;
+    if(ateStr && l.data > ateStr) return false;
+    if(deStr  && l.data < deStr)  return false;
+    return true;
+  });
+  const entProj = aRealizarPeriodo.filter(l=>l.fluxo==='Entrada').reduce((s,l)=>s+l.valor,0);
+  const saiProj = aRealizarPeriodo.filter(l=>l.fluxo==='Saída').reduce((s,l)=>s+l.valor,0);
+  const saldoProjetado = pat + entProj - saiProj;
+  const varProj = saldoIniDash !== null ? saldoProjetado - saldoIniDash : null;
 
   // ── KPIs ──
   document.getElementById('kpi-dash').innerHTML=`
-    ${saldoIniDash!==null?`<div class="kpi" style="--ka:var(--mut)"><div class="kpi-lbl">Saldo inicial</div><div class="kpi-val">${fmtS(saldoIniDash)}</div><div class="kpi-sub">${diaAntDash.split('-').reverse().join('/')}</div></div>`:''}
-    <div class="kpi" style="--ka:var(--acc)"><div class="kpi-lbl">Patrimônio Total</div><div class="kpi-val">${fmtS(pat)}</div><div class="kpi-sub up">↑ ${pct.toFixed(1)}% da meta</div></div>
-    <div class="kpi" style="--ka:var(--blue)"><div class="kpi-lbl">Receitas no período</div><div class="kpi-val">${fmtS(rec)}</div><div class="kpi-sub up">${nLanc} lançamentos</div></div>
-    <div class="kpi" style="--ka:var(--red)"><div class="kpi-lbl">Despesas no período</div><div class="kpi-val">${fmtS(des)}</div><div class="kpi-sub">Saídas totais</div></div>
-    <div class="kpi" style="--ka:${saldo>=0?'var(--acc)':'var(--red)'}"><div class="kpi-lbl">Saldo do período</div><div class="kpi-val">${fmtS(Math.abs(saldo))}</div><div class="kpi-sub ${saldo>=0?'up':'dn'}">${saldo>=0?'Positivo':'Negativo'}</div></div>
-    <div class="kpi" style="--ka:var(--amb)"><div class="kpi-lbl">Taxa de poupança</div><div class="kpi-val">${txPoup.toFixed(1)}%</div><div class="kpi-sub ${txPoup>=20?'up':'warn'}">${txPoup>=20?'Boa':'Abaixo do ideal'}</div></div>
+    ${saldoIniDash!==null?`
+    <div class="kpi" style="--ka:var(--mut)">
+      <div class="kpi-lbl">Saldo inicial</div>
+      <div class="kpi-val">${fmtS(saldoIniDash)}</div>
+      <div class="kpi-sub">${diaAntDash.split('-').reverse().join('/')}</div>
+    </div>`:''}
+    <div class="kpi" style="--ka:var(--acc)">
+      <div class="kpi-lbl">Patrimônio Atual</div>
+      <div class="kpi-val">${fmtS(pat)}</div>
+      <div class="kpi-sub up">↑ ${pct.toFixed(1)}% da meta</div>
+    </div>
+    <div class="kpi" style="--ka:${saldoProjetado>=pat?'var(--acc)':'var(--amb)'}">
+      <div class="kpi-lbl">Saldo projetado</div>
+      <div class="kpi-val" style="color:${saldoProjetado>=pat?'var(--acc)':'var(--amb)'}">${fmtS(saldoProjetado)}</div>
+      <div class="kpi-sub ${varProj!==null&&varProj>=0?'up':'dn'}">${varProj!==null?(varProj>=0?'▲ +':' ▼ ')+fmtS(Math.abs(varProj))+' vs início':'A realizar: '+fmtS(entProj-saiProj)}</div>
+    </div>
+    <div class="kpi" style="--ka:var(--blue)">
+      <div class="kpi-lbl">Receitas no período</div>
+      <div class="kpi-val">${fmtS(rec)}</div>
+      <div class="kpi-sub up">${nLanc} lançamentos</div>
+    </div>
+    <div class="kpi" style="--ka:var(--red)">
+      <div class="kpi-lbl">Despesas no período</div>
+      <div class="kpi-val">${fmtS(des)}</div>
+      <div class="kpi-sub">Saídas totais</div>
+    </div>
+    <div class="kpi" style="--ka:${saldo>=0?'var(--acc)':'var(--red)'}">
+      <div class="kpi-lbl">Saldo do período</div>
+      <div class="kpi-val">${fmtS(Math.abs(saldo))}</div>
+      <div class="kpi-sub ${saldo>=0?'up':'dn'}">${saldo>=0?'Positivo':'Negativo'}</div>
+    </div>
+    <div class="kpi" style="--ka:var(--amb)">
+      <div class="kpi-lbl">Taxa de poupança</div>
+      <div class="kpi-val">${txPoup.toFixed(1)}%</div>
+      <div class="kpi-sub ${txPoup>=20?'up':'warn'}">${txPoup>=20?'Boa':'Abaixo do ideal'}</div>
+    </div>
     ${nUrgentes>0?`<div class="kpi" style="--ka:var(--red)"><div class="kpi-lbl">Alertas urgentes</div><div class="kpi-val" style="color:var(--red)">${nUrgentes}</div><div class="kpi-sub dn">Vencem em até 7 dias</div></div>`:''}
-    <div class="kpi" style="--ka:#A78BFA"><div class="kpi-lbl">Falta para meta</div><div class="kpi-val">${fmtS(falta)}</div><div class="kpi-sub">R$ 1 milhão</div></div>`;
+    <div class="kpi" style="--ka:#A78BFA">
+      <div class="kpi-lbl">Falta para meta</div>
+      <div class="kpi-val">${fmtS(falta)}</div>
+      <div class="kpi-sub">R$ 1 milhão · hoje</div>
+    </div>
+    <div class="kpi" style="--ka:${patFimAno>=meta?'var(--acc)':'#A78BFA'}">
+      <div class="kpi-lbl">Projetado Dez/26</div>
+      <div class="kpi-val" style="color:${patFimAno>=meta?'var(--acc)':'#A78BFA'}">${fmtS(patFimAno)}</div>
+      <div class="kpi-sub ${varFimAno>=0?'up':'dn'}">
+        ${patFimAno>=meta
+          ? '🎯 Meta atingida!'
+          : `Falta ${fmtS(faltaFimAno)} · ${pctFimAno.toFixed(1)}%`}
+      </div>
+    </div>`;
 
   // ── Progress bar ──
   document.getElementById('meta-bar').style.width=pct+'%';
   document.getElementById('meta-pct').textContent=pct.toFixed(1)+'% concluído';
-  document.getElementById('meta-sub').textContent=`Faltam ${fmt(falta)} · Projeção: set/out 2026`;
+  document.getElementById('meta-sub').textContent=`Faltam ${fmt(falta)} · Projetado Dez/26: ${fmt(patFimAno)} (${pctFimAno.toFixed(1)}%)`;
   document.getElementById('meta-atual').textContent=`Atual: ${fmt(pat)}`;
 
   // ── Chart helpers ──
@@ -1330,6 +1494,7 @@ function renderLanc(){
   document.getElementById('lanc-tbody').innerHTML=list.length?list.map(l=>`<tr>
     <td style="white-space:nowrap">${l.data.split('-').reverse().join('/')}</td>
     <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.desc}">${l.desc}</td>
+    <td style="font-size:11px;color:var(--txt2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" class="hide-mob" title="${l.fornecedor||''}">${l.fornecedor||'—'}</td>
     <td style="font-size:11px;color:var(--txt2)" class="hide-mob">${l.plano}</td>
     <td style="font-size:11px;color:var(--txt2)" class="hide-mob">${l.tipo}</td>
     <td class="hide-mob">${l.banco}</td>
@@ -1338,9 +1503,10 @@ function renderLanc(){
     <td class="td-amt" style="color:${l.fluxo==='Entrada'?'var(--acc)':'var(--red)'}">${l.fluxo==='Entrada'?'+':'-'}${fmt(l.valor)}</td>
     <td style="white-space:nowrap">
       <button class="btn btn-s btn-sm" onclick="openModal('editar',${l.id})">Editar</button>
+      <button class="btn btn-s btn-sm" onclick="openModal('duplicar',${l.id})" style="margin-left:4px" title="Duplicar lançamento">⧉</button>
       <button class="btn btn-d btn-sm" onclick="delLanc(${l.id})" style="margin-left:4px">✕</button>
     </td>
-  </tr>`).join(''):'<tr><td colspan="9"><div class="empty"><div class="empty-icon">📋</div><p>Nenhum lançamento encontrado</p></div></td></tr>';
+  </tr>`).join(''):'<tr><td colspan="10"><div class="empty"><div class="empty-icon">📋</div><p>Nenhum lançamento encontrado</p></div></td></tr>';
 }
 
 function delLanc(id){if(!confirm('Excluir este lançamento?'))return;S.lancamentos=S.lancamentos.filter(l=>l.id!==id);renderLanc();renderDash();toast('Lançamento excluído')}
@@ -1354,17 +1520,19 @@ function renderAlertas(){
   function calcUrgencia(data){
     const v = new Date(data+'T00:00:00');
     const dias = Math.round((v - hoje) / 86400000);
-    if(dias <= 0)  return 'urgente';
-    if(dias <= 7)  return 'urgente';
-    if(dias <= 30) return 'proximo';
+    if(dias < 0)   return 'vencido';  // passou sem ser pago
+    if(dias === 0) return 'urgente';  // vence hoje
+    if(dias <= 7)  return 'urgente';  // até 7 dias
+    if(dias <= 30) return 'proximo';  // até 30 dias
     return 'ok';
   }
 
   // Define o intervalo de datas conforme filtro
+  // Atrasados (data < hoje, status A Realizar) sempre aparecem independente do filtro
   let deStr, ateStr, label;
   if(filtro === '90dias'){
     const fim = new Date(hoje); fim.setDate(fim.getDate()+90);
-    deStr  = hojeStr;
+    deStr  = '2000-01-01'; // inclui todos os atrasados
     ateStr = fim.toISOString().slice(0,10);
     label  = 'Próximos 90 dias';
   } else if(filtro === 'todos'){
@@ -1372,8 +1540,6 @@ function renderAlertas(){
     ateStr = '2099-12-31';
     label  = 'Todos os períodos';
   } else {
-    // Formato MM/YY → monta primeiro e último dia do mês
-    // Mostra TODOS os lançamentos do mês, mesmo os já passados
     const [mm, yy] = filtro.split('/');
     deStr  = `20${yy}-${mm}-01`;
     const fim = new Date(`20${yy}-${mm}-01`);
@@ -1383,6 +1549,7 @@ function renderAlertas(){
     label = `${nomeMes[mm]}/${yy}`;
   }
 
+  // Filtra A Realizar dentro do período — inclui atrasados (data < hoje)
   const pagar = S.lancamentos
     .filter(l => l.status==='A Realizar' && l.fluxo==='Saída' && l.data >= deStr && l.data <= ateStr)
     .map(l => ({...l, urgencia: calcUrgencia(l.data)}))
@@ -1393,26 +1560,33 @@ function renderAlertas(){
     .map(l => ({...l, urgencia: calcUrgencia(l.data)}))
     .sort((a,b) => a.data.localeCompare(b.data));
 
+  const nVencidoP = pagar.filter(l=>l.urgencia==='vencido').length;
+  const nVencidoR = receber.filter(l=>l.urgencia==='vencido').length;
   const tP = pagar.reduce((s,l)=>s+l.valor,0);
   const tR = receber.reduce((s,l)=>s+l.valor,0);
+
   document.getElementById('al-summary').textContent =
-    `${label} · A pagar: ${fmt(tP)} · A receber: ${fmt(tR)} · Saldo: ${fmt(tR-tP)}`;
+    `${label} · A pagar: ${fmt(tP)} · A receber: ${fmt(tR)} · Saldo: ${fmt(tR-tP)}`
+    + (nVencidoP+nVencidoR > 0 ? ` · ⚠ ${nVencidoP+nVencidoR} em atraso` : '');
 
   const urgMap = {
-    urgente:{cls:'bdg-urg', lbl:'URGENTE'},
-    proximo:{cls:'bdg-next',lbl:'PRÓXIMO'},
-    ok:     {cls:'bdg-ok',  lbl:'OK'}
+    vencido:{ cls:'bdg-urg', lbl:'⚠ ATRASADO' },
+    urgente:{ cls:'bdg-urg', lbl:'URGENTE'    },
+    proximo:{ cls:'bdg-next',lbl:'PRÓXIMO'    },
+    ok:     { cls:'bdg-ok',  lbl:'OK'         }
   };
 
   const renderAl = (list, cor) => list.length ? list.map(l=>`
-    <div class="al-item">
-      <span class="bdg ${urgMap[l.urgencia].cls}" style="min-width:72px;justify-content:center">${urgMap[l.urgencia].lbl}</span>
+    <div class="al-item" style="${l.urgencia==='vencido'?'border-left:3px solid var(--red);padding-left:10px':''}">
+      <span class="bdg ${urgMap[l.urgencia].cls}" style="min-width:80px;justify-content:center">${urgMap[l.urgencia].lbl}</span>
       <div class="al-info">
         <div class="al-desc">${l.desc}</div>
-        <div class="al-date">${l.data.split('-').reverse().join('/')} · ${l.banco} · ${l.plano}</div>
+        <div class="al-date">${l.data.split('-').reverse().join('/')} · ${l.banco} · ${l.plano}
+          ${l.urgencia==='vencido'?`<span style="color:var(--red);font-weight:600;margin-left:6px">${Math.abs(Math.round((new Date(l.data+'T00:00:00')-new Date())/86400000))} dias em atraso</span>`:''}
+        </div>
       </div>
       <div>
-        <div class="al-amt" style="color:${cor}">${fmt(l.valor)}</div>
+        <div class="al-amt" style="color:${l.urgencia==='vencido'?'var(--red)':cor}">${fmt(l.valor)}</div>
         <div style="display:flex;gap:4px;justify-content:flex-end;margin-top:4px">
           <button class="btn btn-s btn-sm" onclick="openModal('editar',${l.id})">Editar</button>
         </div>
@@ -1511,25 +1685,249 @@ function renderPat(){
 }
 
 // ─── ORÇAMENTO ────────────────────────────────────────────────────────────
-function renderOrc(){
-  const tO=S.orcamento.reduce((s,o)=>s+o.orcado,0),tR=S.orcamento.reduce((s,o)=>s+o.realizado,0);
-  document.getElementById('orc-kpis').innerHTML=`
-    <div class="kpi" style="--ka:var(--blue)"><div class="kpi-lbl">Total orçado</div><div class="kpi-val">${fmt(tO)}</div><div class="kpi-sub">Março 2026</div></div>
-    <div class="kpi" style="--ka:var(--red)"><div class="kpi-lbl">Total realizado</div><div class="kpi-val">${fmt(tR)}</div><div class="kpi-sub ${tR>tO?'dn':'warn'}">${(tR/tO*100).toFixed(0)}% do orçado</div></div>
-    <div class="kpi" style="--ka:${tO-tR>=0?'var(--acc)':'var(--red)'}"><div class="kpi-lbl">Saldo disponível</div><div class="kpi-val">${fmt(Math.abs(tO-tR))}</div><div class="kpi-sub ${tO-tR>=0?'up':'dn'}">${tO-tR>=0?'Dentro do orçamento':'Acima do orçado'}</div></div>`;
-  document.getElementById('orc-list').innerHTML=S.orcamento.map((o,i)=>{
-    const pct=o.orcado>0?(o.realizado/o.orcado*100):0;
-    const over=pct>100,warn=pct>80;
-    const col=over?'var(--red)':warn?'var(--amb)':'var(--acc)';
-    return`<div class="orc-row">
-      <div class="orc-lbl">${o.cat}</div>
-      <div class="orc-track"><div class="orc-fill" style="width:${Math.min(100,pct).toFixed(0)}%;background:${col}"></div></div>
-      <div class="orc-pct">${pct.toFixed(0)}%</div>
-      <div class="orc-val" style="color:${col}">${fmt(o.realizado)}</div>
-      <div class="orc-status"><span class="bdg ${over?'bdg-urg':warn?'bdg-warn':'bdg-ok'}">${over?'🔴 Estourou':warn?'⚠ Atenção':'✅ OK'}</span></div>
-    </div>`;
-  }).join('');
+function toggleOrcMes(btn){
+  btn.classList.toggle('on');
+  renderOrc();
 }
+
+function selectAllOrcMes(){
+  document.querySelectorAll('.orc-mes-btn').forEach(b=>b.classList.add('on'));
+  renderOrc();
+}
+
+function selectYTDOrcMes(){
+  const hoje = new Date().toISOString().slice(0,7); // YYYY-MM
+  document.querySelectorAll('.orc-mes-btn').forEach(b=>{
+    const [mm,yy] = b.dataset.mes.split('/');
+    const d = `20${yy}-${mm}`;
+    b.classList.toggle('on', d <= hoje);
+  });
+  renderOrc();
+}
+
+function getOrcMesSelecionados(){
+  return [...document.querySelectorAll('.orc-mes-btn.on')].map(b=>b.dataset.mes);
+}
+
+function getOrcadoParaMes(cat, mes){
+  // Retorna o orçado para a categoria no mês — usa mensal específico ou default
+  const [mm,yy] = mes.split('/');
+  const key = `20${yy}-${mm}`;
+  return cat.mensal[key] !== undefined ? cat.mensal[key] : cat.mensal.default;
+}
+
+function renderOrc(){
+  const meses = getOrcMesSelecionados();
+  if(!meses.length){
+    document.getElementById('orc-kpis').innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>Selecione pelo menos um mês</p></div>';
+    document.getElementById('orc-tbody').innerHTML='';
+    return;
+  }
+
+  const nomeMes={'12':'Dez','01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun','07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov'};
+  const label = meses.length===1
+    ? (() => { const [mm,yy]=meses[0].split('/'); return `${nomeMes[mm]}/${yy}`; })()
+    : `${meses.length} meses selecionados`;
+
+  // Intervalo de datas dos meses selecionados
+  const datas = meses.map(m => {
+    const [mm,yy] = m.split('/');
+    const ini = `20${yy}-${mm}-01`;
+    const fim = new Date(`20${yy}-${mm}-01`); fim.setMonth(fim.getMonth()+1); fim.setDate(0);
+    return { ini, fim: fim.toISOString().slice(0,10) };
+  });
+  const deStr  = datas.map(d=>d.ini).sort()[0];
+  const ateStr = datas.map(d=>d.fim).sort().pop();
+
+  // Lançamentos Realizados nas datas dos meses selecionados
+  const lancReal = S.lancamentos.filter(l =>
+    l.status==='Realizado' && meses.includes(l.mes) && l.fluxo==='Saída'
+  );
+  // Lançamentos A Realizar nas datas dos meses selecionados
+  const lancProj = S.lancamentos.filter(l =>
+    l.status==='A Realizar' && meses.includes(l.mes) && l.fluxo==='Saída'
+  );
+  // Receitas realizadas
+  const recReal = S.lancamentos.filter(l=>
+    l.status==='Realizado' && meses.includes(l.mes) && l.fluxo==='Entrada'
+  ).reduce((s,l)=>s+l.valor,0);
+  // Receitas projetadas
+  const recProj = S.lancamentos.filter(l=>
+    l.status==='A Realizar' && meses.includes(l.mes) && l.fluxo==='Entrada'
+  ).reduce((s,l)=>s+l.valor,0);
+
+  // Monta resumo por categoria
+  const rows = S.orcamento.categorias.map(cat => {
+    // Orçado = soma dos orçamentos mensais dos meses selecionados
+    const orcado = meses.reduce((s,m) => s + getOrcadoParaMes(cat, m), 0);
+
+    // Realizado = soma dos lançamentos realizados cujo plano está na categoria
+    const realizado = lancReal
+      .filter(l => cat.planos.includes(l.plano))
+      .reduce((s,l)=>s+l.valor,0);
+
+    // A Realizar = lançamentos futuros cujo plano está na categoria
+    const aRealizar = lancProj
+      .filter(l => cat.planos.includes(l.plano))
+      .reduce((s,l)=>s+l.valor,0);
+
+    const projetado = realizado + aRealizar;
+    return { cat: cat.cat, orcado, realizado, aRealizar, projetado };
+  });
+
+  // Detecta lançamentos fora das categorias
+  const planosNasCats = S.orcamento.categorias.flatMap(c=>c.planos);
+  const lancForaCat = {};
+  [...lancReal,...lancProj].forEach(l=>{
+    if(!planosNasCats.includes(l.plano)){
+      lancForaCat[l.plano] = lancForaCat[l.plano] || {realizado:0,aRealizar:0};
+      if(l.status==='Realizado') lancForaCat[l.plano].realizado += l.valor;
+      else lancForaCat[l.plano].aRealizar += l.valor;
+    }
+  });
+  Object.entries(lancForaCat).forEach(([plano,v])=>{
+    rows.push({cat:`[Sem categoria] ${plano}`, orcado:0, realizado:v.realizado, aRealizar:v.aRealizar, projetado:v.realizado+v.aRealizar});
+  });
+
+  const ativas = rows.filter(r=>r.orcado>0||r.realizado>0||r.aRealizar>0)
+    .sort((a,b)=>{
+      const pA=a.orcado>0?a.projetado/a.orcado:(a.projetado>0?999:0);
+      const pB=b.orcado>0?b.projetado/b.orcado:(b.projetado>0?999:0);
+      return pB-pA;
+    });
+
+  const tO  = ativas.reduce((s,r)=>s+r.orcado,0);
+  const tR  = ativas.reduce((s,r)=>s+r.realizado,0);
+  const tAR = ativas.reduce((s,r)=>s+r.aRealizar,0);
+  const tP  = ativas.reduce((s,r)=>s+r.projetado,0);
+  const saldoReal = tO - tR;
+  const saldoProj = tO - tP;
+  const nEstouros = ativas.filter(r=>r.orcado>0&&r.projetado>r.orcado).length;
+
+  document.getElementById('orc-subtitle').textContent=`${label} · Realizado + Projetado vs Orçamento`;
+
+  document.getElementById('orc-kpis').innerHTML=`
+    <div class="kpi" style="--ka:var(--blue)">
+      <div class="kpi-lbl">Total orçado</div>
+      <div class="kpi-val">${fmt(tO)}</div>
+      <div class="kpi-sub">${label}</div>
+    </div>
+    <div class="kpi" style="--ka:var(--red)">
+      <div class="kpi-lbl">Realizado</div>
+      <div class="kpi-val">${fmt(tR)}</div>
+      <div class="kpi-sub ${tR>tO?'dn':'warn'}">${tO>0?(tR/tO*100).toFixed(0)+'% do orçado':'—'}</div>
+    </div>
+    <div class="kpi" style="--ka:var(--amb)">
+      <div class="kpi-lbl">A Realizar (projeção)</div>
+      <div class="kpi-val">${fmt(tAR)}</div>
+      <div class="kpi-sub">Lançamentos futuros</div>
+    </div>
+    <div class="kpi" style="--ka:${saldoProj>=0?'var(--acc)':'var(--red)'}">
+      <div class="kpi-lbl">Saldo projetado</div>
+      <div class="kpi-val" style="color:${saldoProj>=0?'var(--acc)':'var(--red)'}">${fmt(Math.abs(saldoProj))}</div>
+      <div class="kpi-sub ${saldoProj>=0?'up':'dn'}">${saldoProj>=0?'Dentro do orçamento':'⚠ Estouro projetado'}</div>
+    </div>
+    <div class="kpi" style="--ka:var(--acc)">
+      <div class="kpi-lbl">Receitas no período</div>
+      <div class="kpi-val">${fmt(recReal+recProj)}</div>
+      <div class="kpi-sub up">Real: ${fmt(recReal)} + Proj: ${fmt(recProj)}</div>
+    </div>
+    ${nEstouros>0?`<div class="kpi" style="--ka:var(--red)">
+      <div class="kpi-lbl">Categorias estourando</div>
+      <div class="kpi-val" style="color:var(--red)">${nEstouros}</div>
+      <div class="kpi-sub dn">Orçamento ultrapassado</div>
+    </div>`:''}`;
+
+  // Alerta
+  const alertas = ativas.filter(r=>r.orcado>0&&r.projetado>r.orcado);
+  document.getElementById('orc-alerta').innerHTML = alertas.length
+    ? `<div style="background:var(--red-d);border:1px solid rgba(248,113,113,.25);border-radius:var(--rs);padding:12px 16px">
+        <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:6px">⚠ ${alertas.length} categoria${alertas.length>1?'s':''} com estouro projetado</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${alertas.map(r=>`<span style="font-size:11px;background:var(--red-d);color:var(--red);border:1px solid rgba(248,113,113,.2);border-radius:20px;padding:2px 10px">${r.cat}: +${fmt(r.projetado-r.orcado)}</span>`).join('')}
+        </div>
+      </div>`
+    : `<div style="background:var(--acc-d);border:1px solid rgba(110,231,183,.2);border-radius:var(--rs);padding:10px 16px;display:flex;align-items:center;gap:8px">
+        <span>✅</span><span style="font-size:12px;color:var(--acc);font-weight:500">Sem estouros projetados no período selecionado</span>
+      </div>`;
+
+  // Tabela — Despesas
+  const rowHtml = (r) => {
+    const pctProj = r.orcado>0 ? (r.projetado/r.orcado*100) : (r.projetado>0?100:0);
+    const overProj = pctProj>100, warnProj = pctProj>80;
+    const colProj  = overProj?'var(--red)':warnProj?'var(--amb)':'var(--acc)';
+    return `<tr style="${overProj?'background:rgba(248,113,113,.04)':''}">
+      <td style="font-weight:500">${r.cat}</td>
+      <td class="td-amt">${r.orcado>0?fmt(r.orcado):'<span style="color:var(--mut)">—</span>'}</td>
+      <td class="td-amt" style="color:${r.realizado>0?'var(--txt)':'var(--mut)'}">${r.realizado>0?fmt(r.realizado):'—'}</td>
+      <td class="td-amt" style="color:${r.aRealizar>0?'var(--amb)':'var(--mut)'}">${r.aRealizar>0?fmt(r.aRealizar):'—'}</td>
+      <td class="td-amt" style="color:${colProj};font-weight:600">${fmt(r.projetado)}</td>
+      <td class="td-amt">
+        <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+          <div style="width:50px;background:var(--bg);border-radius:99px;height:4px;overflow:hidden">
+            <div style="width:${Math.min(100,pctProj).toFixed(0)}%;height:100%;background:${colProj};border-radius:99px"></div>
+          </div>
+          <span style="color:${colProj};min-width:35px;text-align:right">${pctProj.toFixed(0)}%</span>
+        </div>
+      </td>
+      <td style="text-align:center">
+        <span class="bdg ${overProj?'bdg-urg':warnProj?'bdg-warn':'bdg-ok'}">${overProj?'🔴 Estourou':warnProj?'⚠ Atenção':'✅ OK'}</span>
+      </td>
+    </tr>`;
+  };
+
+  // Investimentos — fluxo patrimonial separado
+  const invRows = (S.orcamento.investimentos||[]).map(cat=>{
+    const orcado    = meses.reduce((s,m)=>s+getOrcadoParaMes(cat,m),0);
+    const realizado = lancReal.filter(l=>cat.planos.includes(l.plano)).reduce((s,l)=>s+l.valor,0);
+    const aRealizar = lancProj.filter(l=>cat.planos.includes(l.plano)).reduce((s,l)=>s+l.valor,0);
+    return {cat:cat.cat, orcado, realizado, aRealizar, projetado:realizado+aRealizar};
+  }).filter(r=>r.orcado>0||r.realizado>0||r.aRealizar>0);
+
+  const tInvOrc  = invRows.reduce((s,r)=>s+r.orcado,0);
+  const tInvReal = invRows.reduce((s,r)=>s+r.realizado,0);
+  const tInvProj = invRows.reduce((s,r)=>s+r.projetado,0);
+
+  const sepInv = invRows.length ? `
+    <tr style="background:var(--bg2)">
+      <td colspan="7" style="padding:10px 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#A78BFA">
+        💼 Investimentos — Fluxo Patrimonial
+        <span style="font-weight:400;font-size:10px;color:var(--mut);margin-left:8px">Não impacta despesas — alocação de patrimônio</span>
+      </td>
+    </tr>
+    ${invRows.map(r=>{
+      const pct = r.orcado>0?(r.projetado/r.orcado*100):(r.projetado>0?100:0);
+      return `<tr style="opacity:.85">
+        <td style="font-weight:500;color:#A78BFA">${r.cat}</td>
+        <td class="td-amt">${r.orcado>0?fmt(r.orcado):'<span style="color:var(--mut)">—</span>'}</td>
+        <td class="td-amt">${r.realizado>0?fmt(r.realizado):'—'}</td>
+        <td class="td-amt" style="color:var(--amb)">${r.aRealizar>0?fmt(r.aRealizar):'—'}</td>
+        <td class="td-amt" style="color:#A78BFA;font-weight:600">${fmt(r.projetado)}</td>
+        <td class="td-amt">
+          <div style="display:flex;align-items:center;gap:6px;justify-content:flex-end">
+            <div style="width:50px;background:var(--bg);border-radius:99px;height:4px;overflow:hidden">
+              <div style="width:${Math.min(100,pct).toFixed(0)}%;height:100%;background:#A78BFA;border-radius:99px"></div>
+            </div>
+            <span style="color:#A78BFA;min-width:35px;text-align:right">${pct.toFixed(0)}%</span>
+          </div>
+        </td>
+        <td style="text-align:center"><span class="bdg" style="background:rgba(167,139,250,.1);color:#A78BFA">💼 Investimento</span></td>
+      </tr>`;
+    }).join('')}
+    <tr style="background:rgba(167,139,250,.05);border-top:1px solid rgba(167,139,250,.2)">
+      <td style="font-weight:700;font-size:12px;color:#A78BFA">Total investido</td>
+      <td class="td-amt" style="font-weight:700">${fmt(tInvOrc)}</td>
+      <td class="td-amt" style="font-weight:700">${fmt(tInvReal)}</td>
+      <td class="td-amt" style="font-weight:700;color:var(--amb)">${fmt(tInvProj-tInvReal)}</td>
+      <td class="td-amt" style="font-weight:700;color:#A78BFA">${fmt(tInvProj)}</td>
+      <td class="td-amt" style="font-weight:700;color:#A78BFA">${tInvOrc>0?(tInvProj/tInvOrc*100).toFixed(0)+'%':'—'}</td>
+      <td></td>
+    </tr>` : '';
+
+  document.getElementById('orc-tbody').innerHTML =
+    ativas.map(rowHtml).join('') + sepInv;
+}
+
 
 // ─── MODAIS ───────────────────────────────────────────────────────────────
 const pOpts=PLANOS.map(p=>`<option value="${p}">${p}</option>`).join('');
@@ -1538,30 +1936,94 @@ const tOpts=TIPOS.map(t=>`<option value="${t}">${t}</option>`).join('');
 
 function openModal(tipo,id){
   const m=document.getElementById('modal-inner');
-  if(tipo==='novo'){
-    const today=new Date().toISOString().slice(0,10);
-    m.innerHTML=`<h3>Novo lançamento</h3>
+
+  // ── Campos base (reutilizados em novo e duplicar) ──
+  const camposBase = (l={}, titulo='Novo lançamento', showRecorrencia=true) => {
+    const today = l.data || new Date().toISOString().slice(0,10);
+    return `<h3>${titulo}</h3>
       <div class="fld-row">
         <div class="fld"><label>Data</label><input type="date" id="m-data" value="${today}"></div>
-        <div class="fld"><label>Fluxo</label><select id="m-fluxo"><option value="Entrada">Entrada (Receita)</option><option value="Saída">Saída (Despesa)</option></select></div>
+        <div class="fld"><label>Fluxo</label><select id="m-fluxo">
+          <option value="Entrada" ${l.fluxo==='Entrada'?'selected':''}>Entrada (Receita)</option>
+          <option value="Saída" ${l.fluxo==='Saída'?'selected':''}>Saída (Despesa)</option>
+        </select></div>
       </div>
-      <div class="fld"><label>Descrição</label><input type="text" id="m-desc" placeholder="Ex: Pix recebido de IMWT"></div>
+      <div class="fld"><label>Descrição</label><input type="text" id="m-desc" value="${l.desc||''}" placeholder="Ex: Aluguel mensal"></div>
       <div class="fld-row">
-        <div class="fld"><label>Plano de Contas</label><select id="m-plano">${pOpts}</select></div>
-        <div class="fld"><label>Tipo</label><select id="m-tipo">${tOpts}</select></div>
+        <div class="fld"><label>Plano de Contas</label><select id="m-plano">${PLANOS.map(p=>`<option value="${p}" ${p===l.plano?'selected':''}>${p}</option>`).join('')}</select></div>
+        <div class="fld"><label>Tipo</label><select id="m-tipo">${TIPOS.map(t=>`<option value="${t}" ${t===l.tipo?'selected':''}>${t}</option>`).join('')}</select></div>
       </div>
       <div class="fld-row">
-        <div class="fld"><label>Banco</label><select id="m-banco">${bOpts}</select></div>
-        <div class="fld"><label>Valor (R$)</label><input type="number" id="m-valor" step="0.01" min="0" placeholder="0,00"></div>
+        <div class="fld"><label>Banco</label><select id="m-banco">${BANCOS.map(b=>`<option value="${b}" ${b===l.banco?'selected':''}>${b}</option>`).join('')}</select></div>
+        <div class="fld"><label>Valor (R$)</label><input type="number" id="m-valor" step="0.01" min="0" value="${l.valor||''}" placeholder="0,00"></div>
       </div>
       <div class="fld-row">
-        <div class="fld"><label>Fornecedor / Origem</label><input type="text" id="m-forn" placeholder="Nome"></div>
-        <div class="fld"><label>Status</label><select id="m-status"><option value="Realizado">Realizado</option><option value="A Realizar">A Realizar</option></select></div>
+        <div class="fld"><label>Fornecedor / Origem</label>${fornDatalist()}<input type="text" id="m-forn" list="forn-list" value="${l.fornecedor||''}" placeholder="Digite ou selecione..." autocomplete="off" style="width:100%"></div>
+        <div class="fld"><label>Status</label><select id="m-status">
+          <option value="A Realizar" ${l.status==='A Realizar'||!l.status?'selected':''}>A Realizar</option>
+          <option value="Realizado" ${l.status==='Realizado'?'selected':''}>Realizado</option>
+        </select></div>
       </div>
+      ${showRecorrencia ? `
+      <!-- Recorrência -->
+      <div style="border-top:1px solid var(--brd);margin:14px 0 10px;padding-top:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <input type="checkbox" id="m-recorrente" onchange="toggleRecorrencia()" style="width:16px;height:16px;cursor:pointer;accent-color:var(--acc)">
+          <label for="m-recorrente" style="font-size:13px;font-weight:600;cursor:pointer;text-transform:none;letter-spacing:0;margin:0">🔁 Lançamento recorrente</label>
+        </div>
+        <div id="m-rec-opts" style="display:none;background:var(--bg2);border-radius:var(--rs);padding:12px;display:none">
+          <div class="fld-row">
+            <div class="fld"><label>Frequência</label>
+              <select id="m-freq">
+                <option value="mensal">Mensal</option>
+                <option value="quinzenal">Quinzenal (15 dias)</option>
+                <option value="semanal">Semanal</option>
+                <option value="bimestral">Bimestral</option>
+                <option value="trimestral">Trimestral</option>
+                <option value="anual">Anual</option>
+              </select>
+            </div>
+            <div class="fld"><label>Nº de repetições</label>
+              <input type="number" id="m-repeticoes" min="2" max="60" value="12" placeholder="Ex: 12">
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--mut);margin-top:4px" id="m-rec-preview"></div>
+        </div>
+      </div>` : ''}`;
+  };
+
+  if(tipo==='novo'){
+    m.innerHTML = camposBase({}, 'Novo lançamento', true) + `
       <div class="modal-actions">
         <button class="btn btn-s" onclick="closeModal()">Cancelar</button>
         <button class="btn btn-p" onclick="saveLanc()">Salvar</button>
       </div>`;
+    // Listeners para preview recorrência
+    setTimeout(()=>{
+      ['m-data','m-freq','m-repeticoes'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.addEventListener('change', updateRecPreview);
+      });
+    },100);
+
+  } else if(tipo==='duplicar'){
+    const l=S.lancamentos.find(x=>x.id===id); if(!l) return;
+    // Avança a data 1 mês por padrão
+    const novaData = new Date(l.data+'T00:00:00');
+    novaData.setMonth(novaData.getMonth()+1);
+    const dataStr = novaData.toISOString().slice(0,10);
+    m.innerHTML = camposBase({...l, data: dataStr}, `⧉ Duplicar: ${l.desc.slice(0,30)}`, true) + `
+      <div class="modal-actions">
+        <button class="btn btn-s" onclick="closeModal()">Cancelar</button>
+        <button class="btn btn-p" onclick="saveLanc()">Salvar cópia</button>
+      </div>`;
+    setTimeout(()=>{
+      ['m-data','m-freq','m-repeticoes'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.addEventListener('change', updateRecPreview);
+      });
+    },100);
+
   } else if(tipo==='editar'){
     const l=S.lancamentos.find(x=>x.id===id);if(!l)return;
     m.innerHTML=`<h3>Editar lançamento</h3>
@@ -1580,7 +2042,7 @@ function openModal(tipo,id){
         <div class="fld"><label>Valor (R$)</label><input type="number" id="m-valor" step="0.01" value="${l.valor}"></div>
       </div>
       <div class="fld-row">
-        <div class="fld"><label>Fornecedor</label><input type="text" id="m-forn" value="${l.fornecedor}"></div>
+        <div class="fld"><label>Fornecedor</label>${fornDatalist()}<input type="text" id="m-forn" list="forn-list" value="${l.fornecedor}" placeholder="Digite ou selecione..." autocomplete="off" style="width:100%"></div>
         <div class="fld"><label>Status</label><select id="m-status"><option value="Realizado" ${l.status==='Realizado'?'selected':''}>Realizado</option><option value="A Realizar" ${l.status==='A Realizar'?'selected':''}>A Realizar</option></select></div>
       </div>
       <div class="modal-actions">
@@ -1629,16 +2091,47 @@ function openModal(tipo,id){
         <button class="btn btn-p" onclick="saveConta(true)">Salvar</button>
       </div>`;
   } else if(tipo==='orc-edit'){
-    m.innerHTML=`<h3>Editar orçamento — Mar/26</h3>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;font-weight:600;color:var(--mut);margin-bottom:4px;padding:0 4px"><span>Orçado</span><span>Realizado</span></div>
-      ${S.orcamento.map((o,i)=>`<div class="fld"><label>${o.cat}</label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <input type="number" id="orc-orc-${i}" step="0.01" value="${o.orcado}" placeholder="Orçado">
-          <input type="number" id="orc-real-${i}" step="0.01" value="${o.realizado}" placeholder="Realizado">
-        </div></div>`).join('')}
+    const meses = ['01/26','02/26','03/26','04/26','05/26','06/26','07/26','08/26','09/26','10/26','11/26','12/26'];
+    const nomeMes={'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun','07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
+    m.innerHTML=`<h3>⚙ Parametrizar orçamento mensal</h3>
+      <p style="font-size:12px;color:var(--mut);margin-bottom:16px;line-height:1.6">
+        Defina o valor <strong style="color:var(--txt)">padrão mensal</strong> para cada categoria. 
+        Para meses específicos diferentes, edite o campo do mês desejado.
+      </p>
+      <div style="max-height:60vh;overflow-y:auto;padding-right:4px">
+      ${S.orcamento.categorias.map((cat,i)=>{
+        const planosList = cat.planos.join(', ');
+        return `<div class="fld" style="background:var(--bg2);border-radius:var(--rs);padding:12px;margin-bottom:8px">
+          <label style="font-size:12px;font-weight:700;color:var(--txt);text-transform:none;letter-spacing:0">${cat.cat}</label>
+          <div style="font-size:10px;color:var(--mut);margin-bottom:8px">${planosList}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:11px;color:var(--mut);min-width:80px">Padrão/mês</span>
+            <input type="number" id="orc-orc-${i}" step="0.01" value="${cat.mensal.default||0}" 
+              style="flex:1;background:var(--bg);border:1px solid var(--brd2);border-radius:var(--rs);padding:6px 10px;color:var(--txt);font-size:13px;font-family:inherit;outline:none"
+              placeholder="0">
+          </div>
+          <details style="font-size:11px">
+            <summary style="cursor:pointer;color:var(--mut);margin-bottom:6px">Personalizar por mês</summary>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+              ${meses.map(mes=>{
+                const [mm,yy]=mes.split('/');
+                const key=`20${yy}-${mm}`;
+                const val=cat.mensal[key]!==undefined?cat.mensal[key]:'';
+                return `<div>
+                  <div style="font-size:10px;color:var(--mut);margin-bottom:2px">${nomeMes[mm]}/${yy}</div>
+                  <input type="number" id="orc-${i}-${mes.replace('/','')}" step="0.01" value="${val}"
+                    style="width:100%;background:var(--bg);border:1px solid var(--brd2);border-radius:var(--rs);padding:5px 8px;color:var(--txt);font-size:12px;font-family:inherit;outline:none"
+                    placeholder="padrão">
+                </div>`;
+              }).join('')}
+            </div>
+          </details>
+        </div>`;
+      }).join('')}
+      </div>
       <div class="modal-actions">
         <button class="btn btn-s" onclick="closeModal()">Cancelar</button>
-        <button class="btn btn-p" onclick="saveOrc()">Salvar</button>
+        <button class="btn btn-p" onclick="saveOrc()">Salvar orçamento</button>
       </div>`;
   }
   document.getElementById('modal').classList.add('on');
@@ -1667,15 +2160,92 @@ function recalcBancos(){
   });
 }
 
+function toggleRecorrencia(){
+  const cb  = document.getElementById('m-recorrente');
+  const opt = document.getElementById('m-rec-opts');
+  if(!cb || !opt) return;
+  opt.style.display = cb.checked ? 'block' : 'none';
+  if(cb.checked) updateRecPreview();
+}
+
+function updateRecPreview(){
+  const dataEl  = document.getElementById('m-data');
+  const freqEl  = document.getElementById('m-freq');
+  const repEl   = document.getElementById('m-repeticoes');
+  const prev    = document.getElementById('m-rec-preview');
+  if(!dataEl || !freqEl || !repEl || !prev) return;
+  const datas = gerarDatasRecorrencia(dataEl.value, freqEl.value, parseInt(repEl.value)||2);
+  const fmt = d => d.split('-').reverse().join('/');
+  prev.textContent = `Serão criados ${datas.length} lançamentos: ${fmt(datas[0])} → ${fmt(datas[datas.length-1])}`;
+}
+
+function gerarDatasRecorrencia(dataInicio, freq, repeticoes){
+  const datas = [dataInicio];
+  let atual = new Date(dataInicio+'T00:00:00');
+  for(let i=1; i<repeticoes; i++){
+    const prox = new Date(atual);
+    if(freq==='mensal')      prox.setMonth(prox.getMonth()+1);
+    else if(freq==='quinzenal') prox.setDate(prox.getDate()+15);
+    else if(freq==='semanal')   prox.setDate(prox.getDate()+7);
+    else if(freq==='bimestral') prox.setMonth(prox.getMonth()+2);
+    else if(freq==='trimestral')prox.setMonth(prox.getMonth()+3);
+    else if(freq==='anual')     prox.setFullYear(prox.getFullYear()+1);
+    datas.push(prox.toISOString().slice(0,10));
+    atual = prox;
+  }
+  return datas;
+}
+
 function saveLanc(edit=false){
-  const data=document.getElementById('m-data').value,desc=document.getElementById('m-desc').value.trim(),valor=parseFloat(document.getElementById('m-valor').value);
-  if(!data||!desc||!valor||valor<=0){toast('Preencha todos os campos');return}
-  const mes=data.slice(5,7)+'/'+data.slice(2,4);
-  const obj={data,mes,desc,valor,plano:document.getElementById('m-plano').value,tipo:document.getElementById('m-tipo').value,banco:document.getElementById('m-banco').value,fornecedor:document.getElementById('m-forn').value||'',status:document.getElementById('m-status').value,fluxo:document.getElementById('m-fluxo').value};
-  if(edit){const id=parseInt(document.getElementById('m-id').value);Object.assign(S.lancamentos.find(x=>x.id===id),obj);toast('Atualizado ✓')}
-  else{S.lancamentos.push({id:S.nextId++,...obj});toast('Lançamento adicionado ✓')}
+  const data   = document.getElementById('m-data').value;
+  const desc   = document.getElementById('m-desc').value.trim();
+  const valor  = parseFloat(document.getElementById('m-valor').value);
+  if(!data||!desc||!valor||valor<=0){ toast('Preencha todos os campos'); return; }
+
+  const base = {
+    data, desc, valor,
+    mes:       data.slice(5,7)+'/'+data.slice(2,4),
+    plano:     document.getElementById('m-plano').value,
+    tipo:      document.getElementById('m-tipo').value,
+    banco:     document.getElementById('m-banco').value,
+    fornecedor:document.getElementById('m-forn').value||'',
+    status:    document.getElementById('m-status').value,
+    fluxo:     document.getElementById('m-fluxo').value
+  };
+
+  if(edit){
+    const id = parseInt(document.getElementById('m-id').value);
+    Object.assign(S.lancamentos.find(x=>x.id===id), base);
+    toast('Atualizado ✓');
+  } else {
+    // Verifica se é recorrente
+    const cbRec = document.getElementById('m-recorrente');
+    const isRec = cbRec && cbRec.checked;
+
+    if(isRec){
+      const freq = document.getElementById('m-freq').value;
+      const rep  = parseInt(document.getElementById('m-repeticoes').value)||2;
+      const datas = gerarDatasRecorrencia(data, freq, rep);
+      const freqLabel = {mensal:'Mensal',quinzenal:'Quinzenal',semanal:'Semanal',bimestral:'Bimestral',trimestral:'Trimestral',anual:'Anual'}[freq];
+      datas.forEach((d,i)=>{
+        const parcNum = datas.length>1 ? ` ${i+1}/${datas.length}` : '';
+        S.lancamentos.push({
+          id: S.nextId++,
+          ...base,
+          data: d,
+          mes: d.slice(5,7)+'/'+d.slice(2,4),
+          desc: desc + parcNum
+        });
+      });
+      toast(`${datas.length} lançamentos recorrentes criados ✓`);
+    } else {
+      S.lancamentos.push({id: S.nextId++, ...base});
+      toast('Lançamento adicionado ✓');
+    }
+  }
+
   recalcBancos();
-  closeModal();renderLanc();renderDash();renderPat();
+  closeModal(); renderLanc(); renderDash(); renderPat();
 }
 
 function saveConta(edit=false){
@@ -1687,7 +2257,24 @@ function saveConta(edit=false){
   closeModal();renderAlertas();
 }
 
-function saveOrc(){S.orcamento.forEach((o,i)=>{o.orcado=parseFloat(document.getElementById('orc-orc-'+i).value)||0;o.realizado=parseFloat(document.getElementById('orc-real-'+i).value)||0});closeModal();renderOrc();renderDash();toast('Orçamento atualizado ✓')}
+function saveOrc(){
+  // Salva orçados mensais default para cada categoria
+  S.orcamento.categorias.forEach((cat,i)=>{
+    const v = parseFloat(document.getElementById('orc-orc-'+i).value)||0;
+    cat.mensal.default = v;
+    // Se tiver campos por mês específico
+    const meses = ['01/26','02/26','03/26','04/26','05/26','06/26','07/26','08/26','09/26','10/26','11/26','12/26'];
+    meses.forEach(m=>{
+      const el = document.getElementById(`orc-${i}-${m.replace('/','')}`);
+      if(el){
+        const vm = parseFloat(el.value);
+        if(!isNaN(vm) && vm !== cat.mensal.default) cat.mensal[`20${m.slice(3)}-${m.slice(0,2)}`] = vm;
+        else delete cat.mensal[`20${m.slice(3)}-${m.slice(0,2)}`];
+      }
+    });
+  });
+  closeModal();renderOrc();renderDash();toast('Orçamento atualizado ✓');
+}
 
 // ─── FLUXO DIÁRIO ─────────────────────────────────────────────────────────
 const DIAS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -1905,7 +2492,7 @@ function renderFluxo(){
 
 
 // ─── PERSISTÊNCIA localStorage ────────────────────────────────────────────
-const STORAGE_KEY = 'fincontrol_v22';
+const STORAGE_KEY = 'fincontrol_v23';
 
 function saveState() {
   try {
@@ -1954,7 +2541,26 @@ function loadState() {
       saved.lancamentosUsuario.forEach(l => { if (!ids.has(l.id)) S.lancamentos.push(l); });
     }
 
-    if (saved.orcamento) S.orcamento = saved.orcamento;
+    if (saved.orcamento) {
+      // Migração: formato antigo era array [{cat,orcado,realizado}]
+      // Formato novo é {categorias:[], investimentos:[]}
+      if (Array.isArray(saved.orcamento)) {
+        // Ignora formato antigo — mantém estrutura nova do código
+        console.log('Ignorando orcamento no formato antigo');
+      } else if (saved.orcamento.categorias) {
+        // Formato novo — aplica orçados salvos por categoria
+        saved.orcamento.categorias.forEach(savedCat => {
+          const cat = S.orcamento.categorias.find(c => c.cat === savedCat.cat);
+          if (cat) cat.mensal = savedCat.mensal;
+        });
+        if (saved.orcamento.investimentos) {
+          saved.orcamento.investimentos.forEach(savedInv => {
+            const inv = S.orcamento.investimentos.find(c => c.cat === savedInv.cat);
+            if (inv) inv.mensal = savedInv.mensal;
+          });
+        }
+      }
+    }
     if (saved.nextId)    S.nextId    = saved.nextId;
     if (saved.bancos) {
       S.bancos = S.bancos.map(defaultB => {
@@ -2140,7 +2746,22 @@ async function gdriveLoad(silent=false){
       data.lancamentosUsuario.forEach(l=>{ if(!ids.has(l.id)) S.lancamentos.push(l); });
     }
     if(data.bancos)    S.bancos    = S.bancos.map(b=>{ const s=data.bancos.find(x=>x.id===b.id); return s?{...b,...s}:b; });
-    if(data.orcamento) S.orcamento = data.orcamento;
+    if(data.orcamento){
+      if(Array.isArray(data.orcamento)){
+        // Formato antigo — ignora, mantém estrutura nova
+      } else if(data.orcamento.categorias){
+        data.orcamento.categorias.forEach(sc=>{
+          const c=S.orcamento.categorias.find(x=>x.cat===sc.cat);
+          if(c) c.mensal=sc.mensal;
+        });
+        if(data.orcamento.investimentos){
+          data.orcamento.investimentos.forEach(si=>{
+            const inv=S.orcamento.investimentos.find(x=>x.cat===si.cat);
+            if(inv) inv.mensal=si.mensal;
+          });
+        }
+      }
+    }
     if(data.nextId)    S.nextId    = data.nextId;
 
     // Recalcula saldos e re-renderiza tudo
@@ -2235,7 +2856,22 @@ function importBackup(input){
         data.lancamentosNovos.forEach(l => S.lancamentos.push(l));
       }
       if(data.bancos)    S.bancos    = S.bancos.map(b=>{ const s=data.bancos.find(x=>x.id===b.id); return s?{...b,...s}:b; });
-      if(data.orcamento) S.orcamento = data.orcamento;
+      if(data.orcamento){
+      if(Array.isArray(data.orcamento)){
+        // Formato antigo — ignora, mantém estrutura nova
+      } else if(data.orcamento.categorias){
+        data.orcamento.categorias.forEach(sc=>{
+          const c=S.orcamento.categorias.find(x=>x.cat===sc.cat);
+          if(c) c.mensal=sc.mensal;
+        });
+        if(data.orcamento.investimentos){
+          data.orcamento.investimentos.forEach(si=>{
+            const inv=S.orcamento.investimentos.find(x=>x.cat===si.cat);
+            if(inv) inv.mensal=si.mensal;
+          });
+        }
+      }
+    }
       if(data.nextId)    S.nextId    = data.nextId;
 
       recalcBancos();
