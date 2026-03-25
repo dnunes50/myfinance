@@ -1,4 +1,4 @@
- # MyFinance — Next.js + Supabase + Vercel
+# MyFinance — Next.js + Supabase + Vercel
 
 ## Stack
 - **Frontend**: Next.js 14 + TypeScript + Tailwind CSS
