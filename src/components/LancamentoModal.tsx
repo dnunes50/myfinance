@@ -16,7 +16,7 @@ interface Props {
 const DEFAULT: Omit<Lancamento, 'id' | 'user_id' | 'created_at'> = {
   data: new Date().toISOString().slice(0, 10),
   mes: '',
-  desc: '',
+  descricao: '',
   valor: 0,
   plano: PLANOS[0],
   tipo: TIPOS[0],
