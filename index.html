@@ -212,6 +212,8 @@ input[list]:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-d)}
 .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
 @media(max-width:700px){.chart-grid{grid-template-columns:1fr}}
 </style>
+  <!-- SheetJS para exportar Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -672,10 +674,23 @@ input[list]:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-d)}
       <button class="btn btn-s" style="width:100%;justify-content:center;opacity:.6" onclick="sbSignOut();updateSbUIState()">Desconectar</button>
     </div>
 
-    <div class="modal-actions" style="margin-top:16px">
-      <button class="btn btn-s" onclick="exportBackup()" style="gap:6px">⬇ Exportar JSON</button>
-      <button class="btn btn-s" onclick="document.getElementById('import-file').click()" style="gap:6px">⬆ Importar JSON</button>
-      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)">
+    <div style="border-top:1px solid var(--brd);margin-top:16px;padding-top:16px">
+      <div class="sec-title" style="margin-bottom:10px">Exportar dados</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn btn-p" onclick="exportExcel()" style="gap:6px;flex:1;justify-content:center">
+          📊 Exportar Excel (.xlsx)
+        </button>
+        <button class="btn btn-s" onclick="exportCSV()" style="gap:6px;flex:1;justify-content:center">
+          📄 Exportar CSV
+        </button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="btn btn-s" onclick="exportBackup()" style="gap:6px;flex:1;justify-content:center">⬇ Backup JSON</button>
+        <button class="btn btn-s" onclick="document.getElementById('import-file').click()" style="gap:6px;flex:1;justify-content:center">⬆ Importar JSON</button>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importBackup(this)">
+      </div>
+    </div>
+    <div class="modal-actions" style="margin-top:12px;padding-top:12px">
       <button class="btn btn-s" onclick="document.getElementById('modal-drive').classList.remove('on')">Fechar</button>
     </div>
   </div>
@@ -2826,6 +2841,98 @@ function importBackup(input) {
     input.value = '';
   };
   reader.readAsText(file);
+}
+
+// ── Exportar Excel (SheetJS) ────────────────────────────────────────────
+function exportExcel() {
+  if (typeof XLSX === 'undefined') { toast('Aguarde, carregando biblioteca...'); return; }
+
+  const wb = XLSX.utils.book_new();
+
+  // Aba 1: Lançamentos completos
+  const lancHeaders = ['ID','Data','Mês','Descrição','Fornecedor','Plano de Contas','Tipo','Banco','Fluxo','Status','Valor (R$)'];
+  const lancRows = S.lancamentos
+    .slice().sort((a,b) => a.data.localeCompare(b.data))
+    .map(l => [
+      l.id,
+      l.data.split('-').reverse().join('/'),
+      l.mes,
+      l.desc,
+      l.fornecedor || '',
+      l.plano,
+      l.tipo,
+      l.banco,
+      l.fluxo,
+      l.status,
+      l.valor
+    ]);
+  const wsLanc = XLSX.utils.aoa_to_sheet([lancHeaders, ...lancRows]);
+  // Formata coluna de valor
+  wsLanc['!cols'] = [
+    {wch:6},{wch:12},{wch:8},{wch:35},{wch:30},{wch:25},{wch:22},{wch:12},{wch:8},{wch:12},{wch:14}
+  ];
+  XLSX.utils.book_append_sheet(wb, wsLanc, 'Lançamentos');
+
+  // Aba 2: Resumo mensal por plano de contas
+  const meses = [...new Set(S.lancamentos.map(l => l.mes))].sort();
+  const planos = [...new Set(S.lancamentos.map(l => l.plano))].sort();
+  const resumoHeaders = ['Plano de Contas', ...meses, 'TOTAL'];
+  const resumoRows = planos.map(p => {
+    const vals = meses.map(m =>
+      S.lancamentos.filter(l => l.plano === p && l.mes === m && l.status === 'Realizado')
+        .reduce((s, l) => s + (l.fluxo === 'Entrada' ? l.valor : -l.valor), 0)
+    );
+    const total = vals.reduce((s, v) => s + v, 0);
+    return [p, ...vals, total];
+  }).filter(r => r.slice(1).some(v => v !== 0));
+  const wsResumo = XLSX.utils.aoa_to_sheet([resumoHeaders, ...resumoRows]);
+  wsResumo['!cols'] = [{wch:28}, ...meses.map(() => ({wch:12})), {wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Mensal');
+
+  // Aba 3: Saldo por banco
+  const pat = S.bancos.reduce((s, b) => s + b.valor, 0);
+  const bancosHeaders = ['Banco', 'Saldo Atual (R$)', '% do Patrimônio'];
+  const bancosRows = S.bancos.map(b => [b.nome, b.valor, pat > 0 ? (b.valor/pat*100).toFixed(2)+'%' : '0%']);
+  bancosRows.push(['TOTAL', pat, '100%']);
+  const wsBancos = XLSX.utils.aoa_to_sheet([bancosHeaders, ...bancosRows]);
+  wsBancos['!cols'] = [{wch:16},{wch:18},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, wsBancos, 'Patrimônio');
+
+  // Download
+  const ts = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `myfinance-${ts}.xlsx`);
+  toast('Excel exportado ✓');
+}
+
+
+// ── Exportar CSV simples ─────────────────────────────────────────────────
+function exportCSV() {
+  const BOM = '\uFEFF';
+  const headers = ['ID','Data','Mês','Descrição','Fornecedor','Plano','Tipo','Banco','Fluxo','Status','Valor'];
+  const rows = S.lancamentos
+    .slice().sort((a,b) => a.data.localeCompare(b.data))
+    .map(l => [
+      l.id,
+      l.data.split('-').reverse().join('/'),
+      l.mes,
+      `"${(l.desc||'').replace(/"/g,'""')}"`,
+      `"${(l.fornecedor||'').replace(/"/g,'""')}"`,
+      `"${(l.plano||'').replace(/"/g,'""')}"`,
+      l.tipo,
+      l.banco,
+      l.fluxo,
+      l.status,
+      String(l.valor).replace('.',',')
+    ].join(';'));
+  const csv = BOM + headers.join(';') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `myfinance-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('CSV exportado ✓');
 }
 
 // ── Intercepta saveState para salvar automaticamente no Supabase ─────────
