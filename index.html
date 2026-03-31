@@ -1014,7 +1014,8 @@ let S={
     {"id":245,"data":"2026-03-11","mes":"03/26","plano":"Combustível","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"Pedágio","fornecedor":"Bianca Martins","valor":30.0,"status":"Realizado","fluxo":"Saída"},
   {"id":246,"data":"2026-03-15","mes":"03/26","plano":"Outras Despesas","tipo":"Despesa Pessoal","banco":"C6 Bank","desc":"K10 TV","fornecedor":"K10 TV","valor":40.0,"status":"Realizado","fluxo":"Saída"},
   {"id":247,"data":"2026-03-16","mes":"03/26","plano":"Combustível","tipo":"Despesa com Transporte","banco":"C6 Bank","desc":"Pedágio","fornecedor":"Pedágio","valor":8.0,"status":"Realizado","fluxo":"Saída"},
-  {"id":248,"data":"2026-03-16","mes":"03/26","plano":"Onil","tipo":"Investimento","banco":"C6 Bank","desc":"Onil","fornecedor":"Onil","valor":20000.0,"status":"Realizado","fluxo":"Saída"}
+  {"id":248,"data":"2026-03-16","mes":"03/26","plano":"Onil","tipo":"Investimento","banco":"C6 Bank","desc":"Onil","fornecedor":"Onil","valor":20000.0,"status":"Realizado","fluxo":"Saída"},
+  {"id":249,"data":"2026-03-16","mes":"03/26","plano":"Onil","tipo":"Investimento","banco":"Onil","desc":"Aporte Onil","fornecedor":"Onil","valor":20000.0,"status":"Realizado","fluxo":"Entrada"}
   ],
   alertas:[
     {id:1,tipo:'pagar',desc:'IPVA 3ª parcela Clio',fornecedor:'IPVA Clio',banco:'C6 Bank',vencimento:'2026-03-16',valor:134.03,urgencia:'urgente',categoria:'Despesa com Transporte'},
@@ -1033,11 +1034,11 @@ let S={
     {id:12,tipo:'receber',desc:'Salário CLT - abril',fornecedor:'ACTA ROBOTICS',banco:'C6 Bank',vencimento:'2026-04-05',valor:7441.38,urgencia:'ok',categoria:'Receita'},
   ],
   bancos:[
-    {id:1,nome:'Nubank',  saldoAbertura:71281.86,  dataAbertura:'2025-12-31', valor:5133.69,   classe:'Caixa',                    cor:'#8B5CF6'},
-    {id:2,nome:'C6 Bank', saldoAbertura:138.74,    dataAbertura:'2025-12-31', valor:42502.45,  classe:'Caixa',                    cor:'#F97316'},
-    {id:3,nome:'Santander',saldoAbertura:0.80,      dataAbertura:'2025-12-31', valor:0,         classe:'Caixa',                    cor:'#EF4444'},
-    {id:4,nome:'Clear',   saldoAbertura:155.24,    dataAbertura:'2025-12-31', valor:155.24,    classe:'Caixa',                    cor:'#6EE7B7'},
-    {id:5,nome:'Onil',    saldoAbertura:662719.79, dataAbertura:'2025-12-31', valor:675446.24, classe:'Investimento Internacional',cor:'#60A5FA'},
+    {id:1,nome:'Nubank',   saldoAbertura:71281.86,  dataAbertura:'2025-12-31', valor:0, classe:'Caixa',                    cor:'#8B5CF6'},
+    {id:2,nome:'C6 Bank',  saldoAbertura:138.74,    dataAbertura:'2025-12-31', valor:0, classe:'Caixa',                    cor:'#F97316'},
+    {id:3,nome:'Santander',saldoAbertura:0.80,       dataAbertura:'2025-12-31', valor:0, classe:'Caixa',                    cor:'#EF4444'},
+    {id:4,nome:'Clear',    saldoAbertura:155.24,     dataAbertura:'2025-12-31', valor:0, classe:'Caixa',                    cor:'#6EE7B7'},
+    {id:5,nome:'Onil',    saldoAbertura:662719.79, dataAbertura:'2025-12-31', valor:0, classe:'Investimento Internacional',cor:'#60A5FA'},
     {id:6,nome:'XP',      saldoAbertura:0,          dataAbertura:'2025-12-31', valor:0,         classe:'Renda Fixa',               cor:'#3B82F6'},
     {id:7,nome:'Binance', saldoAbertura:0,          dataAbertura:'2025-12-31', valor:0,         classe:'Cripto',                   cor:'#FCD34D'},
   ],
@@ -2529,10 +2530,10 @@ function loadState() {
       S.bancos = S.bancos.map(defaultB => {
         const savedB = saved.bancos.find(b => b.id === defaultB.id);
         if (!savedB) return defaultB;
-        if (!savedB.dataAbertura || savedB.saldoAbertura === undefined) {
-          return { ...savedB, saldoAbertura: defaultB.saldoAbertura, dataAbertura: defaultB.dataAbertura };
-        }
-        return { ...defaultB, ...savedB };
+        // Nunca restaura valor — sempre recalculado pelo recalcBancos()
+        // Preserva saldoAbertura e dataAbertura do HTML (fonte verdade)
+        const { valor, saldoAbertura, dataAbertura, ...rest } = savedB;
+        return { ...defaultB, ...rest };
       });
     }
   } catch(e) { console.warn('Erro ao carregar:', e); }
@@ -2655,7 +2656,10 @@ async function sbLoad(silent = false) {
     if (data.bancos) {
       S.bancos = S.bancos.map(b => {
         const s = data.bancos.find(x => x.id === b.id);
-        return s ? { ...b, ...s } : b;
+        if (!s) return b;
+        // Nunca sobrescreve saldoAbertura, dataAbertura e valor — estes são calculados
+        const { valor, saldoAbertura, dataAbertura, ...rest } = s;
+        return { ...b, ...rest };
       });
     }
     if (data.orcamento) {
