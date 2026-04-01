@@ -128,3 +128,24 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .hide-mob{display:none!important}
   .nav-tabs{display:none}
 }
+
+/* Mobile bottom nav */
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg2);border-top:1px solid var(--brd);padding:4px 0 env(safe-area-inset-bottom,0)}
+.mob-nav-items{display:flex;justify-content:space-around}
+.mob-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;background:none;border:none;color:var(--mut);font-family:'Sora',sans-serif;font-size:9px;font-weight:500;cursor:pointer;min-width:52px}
+.mob-item.on{color:var(--acc)}
+.mob-item-icon{font-size:18px}
+.page-pad{padding-bottom:0}
+@media(max-width:768px){
+  .mob-nav{display:block}
+  .page-pad{padding-bottom:70px}
+  .nav-right span{display:none}
+}
+
+/* Row highlight animation */
+@keyframes rowFlash{0%{background:rgba(110,231,183,.18)}100%{background:transparent}}
+.row-flash{animation:rowFlash .8s ease}
+
+/* Sortable header */
+.th-sort{cursor:pointer;user-select:none}
+.th-sort:hover{color:var(--txt)}

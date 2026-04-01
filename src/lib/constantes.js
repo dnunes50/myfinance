@@ -113,3 +113,11 @@ export const gerarDatasRecorrencia = (dataInicio, freq, repeticoes) => {
   }
   return datas
 }
+
+// Mês atual dinâmico — ex: '03/26'
+export const getMesAtual = () => {
+  const d = new Date()
+  const mm = String(d.getMonth()+1).padStart(2,'0')
+  const yy = String(d.getFullYear()).slice(2)
+  return `${mm}/${yy}`
+}

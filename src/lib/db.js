@@ -37,10 +37,14 @@ export async function getOrcamento() {
   return data || []
 }
 
-export async function salvarOrcamentoCategoria(cat, valor_default, customMeses) {
-  const { error } = await sb.from('orcamento').upsert(
-    { cat, valor_default, custom_meses: customMeses },
-    { onConflict: 'cat' }
-  )
+export async function salvarOrcamento(categorias) {
+  // Upsert all categories at once
+  const rows = categorias.map(c => ({
+    cat:           c.cat,
+    valor_default: parseFloat(c.valor_default) || 0,
+    custom_meses:  c.custom_meses || {},
+    tipo:          c.tipo,
+  }))
+  const { error } = await sb.from('orcamento').upsert(rows, { onConflict: 'cat' })
   if (error) throw error
 }
