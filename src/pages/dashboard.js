@@ -7,8 +7,14 @@ import ModalLancamento from '../components/ModalLancamento'
 import Modal from '../components/Modal'
 import {
   BANCOS_CONFIG, SALDOS_REF, EVOLUCAO, ORC_CATEGORIAS,
-  BANCOS_LISTA, fmt, fmtS, dateToMes, calcUrgencia, getMesAtual, getMesAtualFiltro
+  BANCOS_LISTA, fmt, fmtS, dateToMes, calcUrgencia, getMesAtual
 } from '../lib/constantes'
+
+// Mês atual no formato de filtro '04/26'
+const getMesAtualFiltro = () => {
+  const d = new Date()
+  return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getFullYear()).slice(2)
+}
 
 const MESES_LABEL = {
   '12/25':'Dez/25','01/26':'Jan/26','02/26':'Fev/26','03/26':'Mar/26','04/26':'Abr/26',
