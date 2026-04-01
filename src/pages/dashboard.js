@@ -7,7 +7,7 @@ import ModalLancamento from '../components/ModalLancamento'
 import Modal from '../components/Modal'
 import {
   BANCOS_CONFIG, SALDOS_REF, EVOLUCAO, ORC_CATEGORIAS,
-  BANCOS_LISTA, fmt, fmtS, dateToMes, calcUrgencia, getMesAtual
+  BANCOS_LISTA, fmt, fmtS, dateToMes, calcUrgencia, getMesAtual, getMesAtualFiltro
 } from '../lib/constantes'
 
 const MESES_LABEL = {
@@ -51,7 +51,7 @@ function DashboardInner() {
   const [userEmail, setUserEmail] = useState('')
   const [dateStr,   setDateStr]   = useState('')
   // FIX 10: persist filters between tabs
-  const [filtroMes,    setFiltroMes]    = useState(getMesAtual())
+  const [filtroMes,    setFiltroMes]    = useState(getMesAtualFiltro())
   const [filtroTipo,   setFiltroTipo]   = useState('')
   const [filtroStatus, setFiltroStatus] = useState('')
   const [filtroBanco,  setFiltroBanco]  = useState('')
@@ -205,7 +205,7 @@ function DashboardInner() {
         {tab==='lancamentos' && <TabLancamentos  {...shared}/>}
         {tab==='alertas'     && <TabAlertas      {...shared}/>}
         {tab==='fluxo'       && <TabFluxo        {...shared}/>}
-        {tab==='patrimonio'  && <TabPatrimonio   {...shared}/>}
+        {tab==='patrimonio'  && <TabPatrimonio   {...shared} lancs={lancs}/>}
         {tab==='orcamento'   && <TabOrcamento    {...shared}/>}
       </div>
     </div>
@@ -804,15 +804,48 @@ function TabFluxo({ lancs }) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// TAB PATRIMÔNIO — FIX 3: dynamic current month
+// TAB PATRIMÔNIO — calcula evolução dinamicamente dos lançamentos
 // ══════════════════════════════════════════════════════════════
-function TabPatrimonio({ bancos }) {
-  const mesAtual = getMesAtual() // FIX 3
-  const pat=bancos.reduce((s,b)=>s+b.valor,0),saldoIni=382436.07,varPat=pat-saldoIni,pct=Math.min(100,pat/1000000*100)
-  const caixa=bancos.filter(b=>['C6 Bank','Nubank','Santander','Clear'].includes(b.nome)).reduce((s,b)=>s+b.valor,0)
-  const intl =bancos.filter(b=>b.nome==='Onil').reduce((s,b)=>s+b.valor,0)
-  const cripto=bancos.filter(b=>b.nome==='Binance').reduce((s,b)=>s+b.valor,0)
-  const alloc=[{l:'Caixa',v:caixa,c:'var(--blue)'},{l:'Internacional',v:intl,c:'var(--acc)'},{l:'Cripto',v:cripto,c:'var(--amb)'}].filter(a=>a.v>0)
+function TabPatrimonio({ bancos, lancs }) {
+  const mesAtual = getMesAtual()
+
+  const pat      = bancos.reduce((s,b)=>s+b.valor,0)
+  const saldoIni = 382436.07
+  const varPat   = pat-saldoIni
+  const pct      = Math.min(100,pat/1000000*100)
+  const caixa    = bancos.filter(b=>['C6 Bank','Nubank','Santander','Clear'].includes(b.nome)).reduce((s,b)=>s+b.valor,0)
+  const intl     = bancos.filter(b=>b.nome==='Onil').reduce((s,b)=>s+b.valor,0)
+  const cripto   = bancos.filter(b=>b.nome==='Binance').reduce((s,b)=>s+b.valor,0)
+  const alloc    = [{l:'Caixa',v:caixa,c:'var(--blue)'},{l:'Internacional',v:intl,c:'var(--acc)'},{l:'Cripto',v:cripto,c:'var(--amb)'}].filter(a=>a.v>0)
+
+  // Calcula evolução patrimonial dinamicamente
+  const BANCOS_BASE = [
+    {nome:'Nubank',    ab:71281.86,  dt:'2025-12-31'},
+    {nome:'C6 Bank',   ab:138.74,    dt:'2025-12-31'},
+    {nome:'Santander', ab:0.80,      dt:'2025-12-31'},
+    {nome:'Clear',     ab:155.24,    dt:'2025-12-31'},
+    {nome:'Onil',      ab:662719.79, dt:'2025-12-31'},
+    {nome:'Binance',   ab:0,         dt:'2025-12-31'},
+  ]
+  const MES_FIM = {
+    'Dez/25':'2025-12-31','Jan/26':'2026-01-31','Fev/26':'2026-02-28',
+    'Mar/26':'2026-03-31','Abr/26':'2026-04-30','Mai/26':'2026-05-31',
+    'Jun/26':'2026-06-30','Jul/26':'2026-07-31','Ago/26':'2026-08-31',
+    'Set/26':'2026-09-30','Out/26':'2026-10-31','Nov/26':'2026-11-30',
+    'Dez/26':'2026-12-31',
+  }
+  const evolucaoDinamica = Object.entries(MES_FIM).map(([mes, fim]) => {
+    const s = {}
+    BANCOS_BASE.forEach(b => {
+      const movs  = lancs.filter(l => l.banco===b.nome && l.status==='Realizado' && l.data>b.dt && l.data<=fim)
+      const aReal = lancs.filter(l => l.banco===b.nome && l.status==='A Realizar' && l.data>b.dt && l.data<=fim)
+      const deltaReal = movs.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
+      const deltaProj = aReal.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
+      s[b.nome] = Math.round((b.ab + deltaReal + deltaProj)*100)/100
+    })
+    const pat = Math.round(Object.values(s).reduce((t,v)=>t+v,0)*100)/100
+    return { mes, nubank:s['Nubank'], c6:s['C6 Bank'], san:s['Santander'], clear:s['Clear'], bin:s['Binance'], onil:s['Onil'], pat }
+  })
 
   return(
     <div>
@@ -873,13 +906,13 @@ function TabPatrimonio({ bancos }) {
         <table>
           <thead><tr><th>Mês</th><th style={{textAlign:'right'}}>Nubank</th><th style={{textAlign:'right'}}>C6 Bank</th><th className="hide-mob" style={{textAlign:'right'}}>Binance</th><th style={{textAlign:'right'}}>Onil</th><th style={{textAlign:'right'}}>Total</th><th style={{textAlign:'right'}}>% Meta</th></tr></thead>
           <tbody>
-            {EVOLUCAO.map((e,i)=>{
-              const prev=i>0?EVOLUCAO[i-1].pat:e.pat,vP=i>0?((e.pat-prev)/prev*100):0
-              // FIX 3: dynamic current month
-              const isNow=e.mes===mesAtual
-              const isFut=!isNow&&e.mes>mesAtual
+            {evolucaoDinamica.map((e,i)=>{
+              const prev  = i>0?evolucaoDinamica[i-1].pat:e.pat
+              const vP    = i>0?((e.pat-prev)/prev*100):0
+              const isNow = e.mes===mesAtual
+              const isFut = !isNow && Object.keys(MES_FIM).indexOf(e.mes) > Object.keys(MES_FIM).indexOf(mesAtual)
               return(
-                <tr key={e.mes} style={{background:isNow?'rgba(110,231,183,.07)':'',opacity:isFut?.6:1}}>
+                <tr key={e.mes} style={{background:isNow?'rgba(110,231,183,.07)':'',opacity:isFut?.7:1}}>
                   <td style={{fontWeight:isNow?700:400,color:isNow?'var(--acc)':isFut?'var(--mut)':'var(--txt)',whiteSpace:'nowrap'}}>
                     {e.mes}
                     {isNow&&<span style={{fontSize:'9px',background:'var(--acc)',color:'#0B0F1A',padding:'1px 5px',borderRadius:'8px',fontWeight:700,marginLeft:'4px'}}>HOJE</span>}
@@ -900,14 +933,13 @@ function TabPatrimonio({ bancos }) {
     </div>
   )
 }
-
 // ══════════════════════════════════════════════════════════════
 // TAB ORÇAMENTO — FIX 2: save to DB
 // ══════════════════════════════════════════════════════════════
 function TabOrcamento({ lancs, orcDb, onSaveOrcamento }) {
   const { toast } = useToast()
   const hoje = new Date().toISOString().slice(0,10)
-  const [mesesSel, setMesesSel] = useState([getMesAtual()])
+  const [mesesSel, setMesesSel] = useState([getMesAtualFiltro()])
   const [modalOrc, setModalOrc] = useState(false)
   const [editVals, setEditVals] = useState({})
   const [saving,   setSaving]   = useState(false)
