@@ -12,13 +12,14 @@ export const SALDOS_REF = {
   '2025-12-31':{ c6:1347.71,   nubank:71212.53, onil:309719.79, san:0.80, clear:155.24, bin:0,    total:382436.07 },
   '2026-01-31':{ c6:18333.04,  nubank:5081.86,  onil:362285.00, san:0,    clear:155.24, bin:0,    total:385855.14 },
   '2026-02-28':{ c6:56868.37,  nubank:5126.90,  onil:651373.44, san:0,    clear:155.24, bin:4000, total:717523.95 },
+  '2026-03-31':{ c6:34465.09,  nubank:5133.69,  onil:695446.24, san:0,    clear:155.24, bin:0,    total:735200.26 },
 }
 
 export const EVOLUCAO = [
   {mes:'Dez/25',nubank:71212.53,c6:1347.71,  san:0.80,clear:155.24,bin:0,   onil:309719.79,pat:382436.07},
   {mes:'Jan/26',nubank:5081.86, c6:18333.04, san:0,   clear:155.24,bin:0,   onil:362285.00,pat:385855.14},
   {mes:'Fev/26',nubank:5126.90, c6:56868.37, san:0,   clear:155.24,bin:4000,onil:651373.44,pat:717523.95},
-  {mes:'Mar/26',nubank:5133.69, c6:34715.09, san:0,   clear:155.24,bin:0,   onil:695446.24,pat:735469.54},
+  {mes:'Mar/26',nubank:5133.69, c6:34465.09, san:0,   clear:155.24,bin:0,   onil:695446.24,pat:735200.26},
   {mes:'Abr/26',nubank:5133.69, c6:45944.01, san:0,   clear:155.24,bin:0,   onil:713311.57,pat:764699.50},
   {mes:'Mai/26',nubank:5133.69, c6:44933.79, san:0,   clear:155.24,bin:0,   onil:731677.13,pat:782099.84},
   {mes:'Jun/26',nubank:5133.69, c6:45087.19, san:0,   clear:155.24,bin:0,   onil:750556.92,pat:801088.03},
