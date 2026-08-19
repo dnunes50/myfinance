@@ -144,7 +144,8 @@ function DashboardInner() {
   const lancsView = filtroUser ? lancs.filter(l => l.user_id === filtroUser) : lancs
   const DIEGO_ID  = 'bb059b55-b4e5-4b3c-8f2b-78183f3118c2'
   const mostrarBase = !filtroUser || filtroUser === DIEGO_ID // dados históricos estáticos só valem p/ consolidado ou Diego
-  const bancos    = calcBancos(lancsView, mostrarBase, bancosDb)
+  const bancosFiltered = filtroUser ? bancosDb.filter(b => b.user_id === filtroUser) : bancosDb
+  const bancos    = calcBancos(lancsView, true, bancosFiltered)
   const fornHist  = [...new Set(lancsView.map(l=>l.fornecedor).filter(Boolean))]
 
   if(loading) return (
@@ -172,7 +173,7 @@ function DashboardInner() {
 
   const shared = {
     lancs: lancsView, bancos, orcDb, fornHist, flashId, mostrarBase,
-    membros, userId, bancosDb, categoriasDb, reloadCadastros: loadAll,
+    membros, userId, bancosDb, bancosFiltered, categoriasDb, reloadCadastros: loadAll,
     onSave:handleSave, onDelete:handleDelete,
     // FIX 10: shared filters
     filtroMes, setFiltroMes, filtroTipo, setFiltroTipo,
@@ -852,11 +853,11 @@ function TabFluxo({ lancs, mostrarBase, bancosDb=[] }) {
 // ══════════════════════════════════════════════════════════════
 // TAB PATRIMÔNIO — calcula evolução dinamicamente dos lançamentos
 // ══════════════════════════════════════════════════════════════
-function TabPatrimonio({ bancos, lancs, mostrarBase, bancosDb }) {
+function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[] }) {
   const mesAtual = getMesAtual()
 
   const pat      = bancos.reduce((s,b)=>s+b.valor,0)
-  const saldoIni = mostrarBase ? bancosDb.reduce((s,b)=>s+b.saldo_abertura,0) : 0
+  const saldoIni = bancosFiltered.reduce((s,b)=>s+b.saldo_abertura,0)
   const varPat   = pat-saldoIni
   const pct      = Math.min(100,pat/1000000*100)
   const caixa    = bancos.filter(b=>b.classe==='Caixa').reduce((s,b)=>s+b.valor,0)
@@ -865,7 +866,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosDb }) {
   const alloc    = [{l:'Caixa',v:caixa,c:'var(--blue)'},{l:'Internacional',v:intl,c:'var(--acc)'},{l:'Cripto',v:cripto,c:'var(--amb)'}].filter(a=>a.v>0)
 
   // Calcula evolução patrimonial dinamicamente
-  const BANCOS_BASE = bancosDb.map(b => ({nome:b.nome, ab:b.saldo_abertura, dt:b.data_abertura}))
+  const BANCOS_BASE = bancosFiltered.map(b => ({nome:b.nome, ab:b.saldo_abertura, dt:b.data_abertura}))
   const MES_FIM = {
     'Dez/25':'2025-12-31','Jan/26':'2026-01-31','Fev/26':'2026-02-28',
     'Mar/26':'2026-03-31','Abr/26':'2026-04-30','Mai/26':'2026-05-31',
@@ -1183,20 +1184,22 @@ export default function Dashboard() {
 // ══════════════════════════════════════════════════════════════
 // TAB BANCOS — cadastro de contas/bancos
 // ══════════════════════════════════════════════════════════════
-function TabBancos({ bancosDb, reloadCadastros }) {
+function TabBancos({ bancosDb, reloadCadastros, membros=[], userId }) {
   const { toast } = useToast()
   const [modal, setModal] = useState({open:false, item:null})
   const [saving, setSaving] = useState(false)
 
-  const DEFAULT = { nome:'', saldo_abertura:'', data_abertura:new Date().toISOString().slice(0,10), classe:'Caixa', cor:'#8B5CF6', ordem:0 }
+  const DEFAULT = { nome:'', saldo_abertura:'', data_abertura:new Date().toISOString().slice(0,10), classe:'Caixa', cor:'#8B5CF6', ordem:0, user_id:userId||'' }
   const [form, setForm] = useState(DEFAULT)
   const set = (k,v) => setForm(f=>({...f,[k]:v}))
 
-  function abrirNovo(){ setForm({...DEFAULT, ordem:bancosDb.length}); setModal({open:true, item:null}) }
+  const nomeMembro = id => membros.find(m=>m.id===id)?.nome || '—'
+
+  function abrirNovo(){ setForm({...DEFAULT, ordem:bancosDb.length, user_id:userId||''}); setModal({open:true, item:null}) }
   function abrirEditar(b){ setForm({...b, saldo_abertura:String(b.saldo_abertura)}); setModal({open:true, item:b}) }
 
   async function salvar(){
-    if(!form.nome) return
+    if(!form.nome || !form.user_id) return
     setSaving(true)
     try {
       const payload = {...form, saldo_abertura: parseFloat(String(form.saldo_abertura).replace(',','.'))||0}
@@ -1221,7 +1224,7 @@ function TabBancos({ bancosDb, reloadCadastros }) {
       </div>
       <div className="tbl-wrap">
         <table>
-          <thead><tr><th>Banco</th><th>Classe</th><th style={{textAlign:'right'}}>Saldo inicial</th><th>Abertura</th><th></th></tr></thead>
+          <thead><tr><th>Banco</th><th>Usuário</th><th>Classe</th><th style={{textAlign:'right'}}>Saldo inicial</th><th>Abertura</th><th></th></tr></thead>
           <tbody>
             {bancosDb.map(b=>(
               <tr key={b.id}>
@@ -1229,6 +1232,7 @@ function TabBancos({ bancosDb, reloadCadastros }) {
                   <span style={{width:'12px',height:'12px',borderRadius:'50%',background:b.cor,display:'inline-block'}}/>
                   {b.nome}
                 </td>
+                <td style={{fontSize:'11px',color:'var(--txt2)'}}>{nomeMembro(b.user_id)}</td>
                 <td>{b.classe}</td>
                 <td className="td-r">R${fmt(b.saldo_abertura)}</td>
                 <td>{b.data_abertura?.split('-').reverse().join('/')}</td>
@@ -1238,13 +1242,20 @@ function TabBancos({ bancosDb, reloadCadastros }) {
                 </td>
               </tr>
             ))}
-            {bancosDb.length===0 && <tr><td colSpan={5} style={{textAlign:'center',color:'var(--mut)'}}>Nenhum banco cadastrado</td></tr>}
+            {bancosDb.length===0 && <tr><td colSpan={6} style={{textAlign:'center',color:'var(--mut)'}}>Nenhum banco cadastrado</td></tr>}
           </tbody>
         </table>
       </div>
 
       <Modal open={modal.open} onClose={()=>setModal({open:false,item:null})} title={modal.item?'Editar banco':'Novo banco'}>
         <div className="fld"><label>Nome</label><input value={form.nome} onChange={e=>set('nome',e.target.value)} placeholder="Ex: Itaú"/></div>
+        <div className="fld">
+          <label>Usuário (dono da conta)</label>
+          <select value={form.user_id||''} onChange={e=>set('user_id',e.target.value)}>
+            <option value="">Selecione...</option>
+            {membros.map(m=><option key={m.id} value={m.id}>{m.nome}</option>)}
+          </select>
+        </div>
         <div className="fld-row">
           <div className="fld"><label>Saldo inicial (R$)</label><input type="number" step="0.01" value={form.saldo_abertura} onChange={e=>set('saldo_abertura',e.target.value)}/></div>
           <div className="fld"><label>Data de abertura</label><input type="date" value={form.data_abertura} onChange={e=>set('data_abertura',e.target.value)}/></div>
@@ -1260,7 +1271,7 @@ function TabBancos({ bancosDb, reloadCadastros }) {
         </div>
         <div className="modal-foot">
           <button className="btn btn-s" onClick={()=>setModal({open:false,item:null})}>Cancelar</button>
-          <button className="btn btn-p" onClick={salvar} disabled={saving}>{saving?'Salvando...':'Salvar'}</button>
+          <button className="btn btn-p" onClick={salvar} disabled={saving || !form.nome || !form.user_id}>{saving?"Salvando...":"Salvar"}</button>
         </div>
       </Modal>
     </div>
