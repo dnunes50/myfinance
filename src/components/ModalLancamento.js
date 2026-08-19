@@ -60,7 +60,7 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
     setSaving(true)
     try {
       const base = {...form, valor, mes: dateToMes(form.data)}
-      delete base.id; delete base.created_at
+      delete base.id; delete base.created_at; delete base.urg
 
       if(mode==='editar' && lanc) {
         await onSave([base], lanc.id)
