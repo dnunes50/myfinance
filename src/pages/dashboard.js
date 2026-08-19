@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { sb } from '../lib/supabase'
-import { getLancamentos, criarLancamento, criarLancamentos, editarLancamento, excluirLancamento, getOrcamento, salvarOrcamento } from '../lib/db'
+import { getLancamentos, criarLancamento, criarLancamentos, editarLancamento, excluirLancamento, getOrcamento, salvarOrcamento, getMembros } from '../lib/db'
 import { ToastProvider, useToast } from '../components/Toast'
 import ModalLancamento from '../components/ModalLancamento'
 import Modal from '../components/Modal'
@@ -55,7 +55,10 @@ function DashboardInner() {
   const [needsSeed, setNeedsSeed] = useState(false)
   const [seeding,   setSeeding]   = useState(false)
   const [userEmail, setUserEmail] = useState('')
+  const [userId,    setUserId]    = useState('')
   const [dateStr,   setDateStr]   = useState('')
+  const [membros,   setMembros]   = useState([])
+  const [filtroUser, setFiltroUser] = useState('') // '' = consolidado
   // FIX 10: persist filters between tabs
   const [filtroMes,    setFiltroMes]    = useState(getMesAtualFiltro())
   const [filtroTipo,   setFiltroTipo]   = useState('')
@@ -67,16 +70,17 @@ function DashboardInner() {
 
   useEffect(() => {
     setDateStr(new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'}))
-    sb.auth.getUser().then(({data}) => setUserEmail(data.user?.email||''))
+    sb.auth.getUser().then(({data}) => { setUserEmail(data.user?.email||''); setUserId(data.user?.id||'') })
     loadAll()
   }, [])
 
   async function loadAll() {
     try {
-      const [l, o] = await Promise.all([getLancamentos(), getOrcamento()])
+      const [l, o, m] = await Promise.all([getLancamentos(), getOrcamento(), getMembros().catch(()=>[])])
       if (l.length===0) setNeedsSeed(true)
       else setLancs(l)
       setOrcDb(o)
+      setMembros(m)
     } catch(e) { toast(e.message,'err') }
     finally { setLoading(false) }
   }
@@ -129,8 +133,9 @@ function DashboardInner() {
     router.replace('/login')
   }
 
-  const bancos   = calcBancos(lancs)
-  const fornHist = [...new Set(lancs.map(l=>l.fornecedor).filter(Boolean))]
+  const bancos    = calcBancos(lancs) // saldo bancário sempre consolidado
+  const lancsView = filtroUser ? lancs.filter(l => l.user_id === filtroUser) : lancs
+  const fornHist  = [...new Set(lancsView.map(l=>l.fornecedor).filter(Boolean))]
 
   if(loading) return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}>
@@ -156,7 +161,7 @@ function DashboardInner() {
   )
 
   const shared = {
-    lancs, bancos, orcDb, fornHist, flashId,
+    lancs: lancsView, bancos, orcDb, fornHist, flashId,
     onSave:handleSave, onDelete:handleDelete,
     // FIX 10: shared filters
     filtroMes, setFiltroMes, filtroTipo, setFiltroTipo,
@@ -189,6 +194,14 @@ function DashboardInner() {
           ))}
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+          {membros.length>0 && (
+            <div style={{display:'flex',gap:'4px',background:'var(--sur2)',padding:'3px',borderRadius:'8px'}}>
+              <button className={`tab${filtroUser===''?' on':''}`} style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setFiltroUser('')}>Consolidado</button>
+              {membros.map(m=>(
+                <button key={m.id} className={`tab${filtroUser===m.id?' on':''}`} style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setFiltroUser(m.id)}>{m.nome}</button>
+              ))}
+            </div>
+          )}
           <span style={{fontSize:'11px',color:'var(--mut)'}} className="hide-mob">{dateStr}</span>
           <button className="btn btn-s btn-sm" onClick={handleSignOut}>Sair</button>
         </div>

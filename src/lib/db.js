@@ -30,6 +30,13 @@ export async function excluirLancamento(id) {
   if (error) throw error
 }
 
+// ── Membros (multi-usuário) ─────────────────────────────────
+export async function getMembros() {
+  const { data, error } = await sb.from('membros_myfinance').select('*')
+  if (error) throw error
+  return data || []
+}
+
 // ── Orçamento ────────────────────────────────────────────────
 export async function getOrcamento() {
   const { data, error } = await sb.from('orcamento').select('*')
