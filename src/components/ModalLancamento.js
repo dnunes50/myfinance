@@ -7,7 +7,7 @@ const DEFAULT = {
   descricao:'', fornecedor:'', valor:'', status:'A Realizar', fluxo:'Saída'
 }
 
-export default function ModalLancamento({ open, onClose, mode, lanc, onSave, fornHist=[] }) {
+export default function ModalLancamento({ open, onClose, mode, lanc, onSave, fornHist=[], membros=[], userId='' }) {
   const [form,    setForm]    = useState({...DEFAULT})
   const [rec,     setRec]     = useState(false)
   const [freq,    setFreq]    = useState('mensal')
@@ -18,13 +18,13 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
 
   useEffect(() => {
     if(!open) return
-    if(mode==='novo') { setForm({...DEFAULT, data: new Date().toISOString().slice(0,10)}); setRec(false) }
+    if(mode==='novo') { setForm({...DEFAULT, data: new Date().toISOString().slice(0,10), user_id: userId}); setRec(false) }
     else if(lanc) {
       if(mode==='duplicar') {
         const d = new Date(lanc.data+'T00:00:00'); d.setMonth(d.getMonth()+1)
-        setForm({...lanc, data: d.toISOString().slice(0,10), valor: String(lanc.valor)})
+        setForm({...lanc, data: d.toISOString().slice(0,10), valor: String(lanc.valor), user_id: lanc.user_id||userId})
       } else {
-        setForm({...lanc, valor: String(lanc.valor)})
+        setForm({...lanc, valor: String(lanc.valor), user_id: lanc.user_id||userId})
       }
       setRec(false)
     }
@@ -107,6 +107,14 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
           </select>
         </div>
       </div>
+      {membros.length>0 && (
+        <div className="fld">
+          <label>Usuário</label>
+          <select value={form.user_id||''} onChange={e=>set('user_id',e.target.value)}>
+            {membros.map(m=><option key={m.id} value={m.id}>{m.nome}</option>)}
+          </select>
+        </div>
+      )}
       <div className="fld">
         <label>Fornecedor</label>
         <datalist id="forn-dl">{allForn.map(f=><option key={f} value={f}/>)}</datalist>

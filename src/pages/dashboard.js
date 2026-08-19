@@ -165,6 +165,7 @@ function DashboardInner() {
 
   const shared = {
     lancs: lancsView, bancos, orcDb, fornHist, flashId, mostrarBase,
+    membros, userId,
     onSave:handleSave, onDelete:handleDelete,
     // FIX 10: shared filters
     filtroMes, setFiltroMes, filtroTipo, setFiltroTipo,
@@ -425,7 +426,7 @@ function TabDashboard({ lancs, bancos, mostrarBase }) {
 // ══════════════════════════════════════════════════════════════
 // TAB LANÇAMENTOS — FIX 7 (sort), FIX 8 (search global), FIX 9 (flash), FIX 10 (persist filters)
 // ══════════════════════════════════════════════════════════════
-function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes, setFiltroMes, filtroTipo, setFiltroTipo, filtroStatus, setFiltroStatus, filtroBanco, setFiltroBanco, busca, setBusca }) {
+function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes, setFiltroMes, filtroTipo, setFiltroTipo, filtroStatus, setFiltroStatus, filtroBanco, setFiltroBanco, busca, setBusca, membros, userId }) {
   const [modal,   setModal]   = useState({open:false,mode:'novo',lanc:null})
   // FIX 7: sortable columns
   const [sortCol, setSortCol] = useState('data')
@@ -564,7 +565,7 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
         </table>
       </div>
 
-      <ModalLancamento open={modal.open} onClose={()=>setModal({open:false,mode:'novo',lanc:null})} mode={modal.mode} lanc={modal.lanc} onSave={onSave} fornHist={fornHist}/>
+      <ModalLancamento open={modal.open} onClose={()=>setModal({open:false,mode:'novo',lanc:null})} mode={modal.mode} lanc={modal.lanc} onSave={onSave} fornHist={fornHist} membros={membros} userId={userId}/>
     </div>
   )
 }
@@ -572,7 +573,7 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
 // ══════════════════════════════════════════════════════════════
 // TAB ALERTAS — FIX 4: marcar como realizado direto
 // ══════════════════════════════════════════════════════════════
-function TabAlertas({ lancs, onSave, onDelete }) {
+function TabAlertas({ lancs, onSave, onDelete, membros, userId }) {
   const { toast } = useToast()
   const [filtro, setFiltro] = useState('90dias')
   const [modal,  setModal]  = useState({open:false,lanc:null})
@@ -647,7 +648,7 @@ function TabAlertas({ lancs, onSave, onDelete }) {
         <div><div className="sec-title">A pagar</div>{renderList(pagar,'var(--red)')}</div>
         <div><div className="sec-title">A receber</div>{renderList(receber,'var(--acc)')}</div>
       </div>
-      <ModalLancamento open={modal.open} onClose={()=>setModal({open:false,lanc:null})} mode="editar" lanc={modal.lanc} onSave={onSave} fornHist={[]}/>
+      <ModalLancamento open={modal.open} onClose={()=>setModal({open:false,lanc:null})} mode="editar" lanc={modal.lanc} onSave={onSave} fornHist={[]} membros={membros} userId={userId}/>
     </div>
   )
 }
