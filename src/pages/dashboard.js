@@ -358,6 +358,16 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
   const des  = lancPeriodo.filter(l=>l.fluxo==='Saída').reduce((s,l)=>s+l.valor,0)
   const saldo= rec-des
   const txP  = rec>0?((rec-des)/rec*100):0
+
+  // Comparativo vs período imediatamente anterior (mesma duração)
+  const diasPeriodo = Math.round((new Date(ate+'T00:00:00')-new Date(de+'T00:00:00'))/86400000)+1
+  const dePrev  = new Date(new Date(de+'T00:00:00').getTime() - diasPeriodo*86400000).toISOString().slice(0,10)
+  const atePrev = new Date(new Date(de+'T00:00:00').getTime() - 86400000).toISOString().slice(0,10)
+  const lancPeriodoPrev = lancs.filter(l=>l.status==='Realizado'&&l.data>=dePrev&&l.data<=atePrev)
+  const recPrev = lancPeriodoPrev.filter(l=>l.fluxo==='Entrada').reduce((s,l)=>s+l.valor,0)
+  const desPrev = lancPeriodoPrev.filter(l=>l.fluxo==='Saída').reduce((s,l)=>s+l.valor,0)
+  const recVar  = recPrev>0 ? ((rec-recPrev)/recPrev*100) : null
+  const desVar  = desPrev>0 ? ((des-desPrev)/desPrev*100) : null
   const aRec = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Entrada'&&l.data>=de&&l.data<=ate).reduce((s,l)=>s+l.valor,0)
   const aSai = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Saída'  &&l.data>=de&&l.data<=ate).reduce((s,l)=>s+l.valor,0)
   const saldoProj  = pat+aRec-aSai
@@ -366,7 +376,8 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
   const saiFimAno  = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Saída'  &&l.data<=fimAnoAtual).reduce((s,l)=>s+l.valor,0)
   const patFimAno  = pat+entFimAno-saiFimAno
   const em7  = new Date(); em7.setDate(em7.getDate()+7)
-  const nUrg = lancs.filter(l=>l.status==='A Realizar'&&l.data>=hoje&&l.data<=em7.toISOString().slice(0,10)).length
+  const proximosVenc = lancs.filter(l=>l.status==='A Realizar'&&l.data>=hoje&&l.data<=em7.toISOString().slice(0,10)).sort((a,b)=>a.data.localeCompare(b.data))
+  const nUrg = proximosVenc.length
 
   // ═══ Análise orçamentária por grupo ═══
   const mesAtualFiltro = getMesAtualFiltro()
@@ -444,6 +455,7 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
     const n=new Date()
     if(tipo==='mes')  { setDe(new Date(n.getFullYear(),n.getMonth(),1).toISOString().slice(0,10)); setAte(new Date(n.getFullYear(),n.getMonth()+1,0).toISOString().slice(0,10)) }
     else if(tipo==='ant'){ setDe(new Date(n.getFullYear(),n.getMonth()-1,1).toISOString().slice(0,10)); setAte(new Date(n.getFullYear(),n.getMonth(),0).toISOString().slice(0,10)) }
+    else if(tipo==='prox'){ setDe(new Date(n.getFullYear(),n.getMonth()+1,1).toISOString().slice(0,10)); setAte(new Date(n.getFullYear(),n.getMonth()+2,0).toISOString().slice(0,10)) }
     else if(tipo==='ytd'){ setDe(`${n.getFullYear()}-01-01`); setAte(n.toISOString().slice(0,10)) }
     else { setDe('2025-12-01'); setAte('2027-12-31') }
   }
@@ -485,21 +497,28 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
     if(c3) chartsRef.current.al=new Chart(c3,{type:'doughnut',data:{labels:ae.map(([k])=>k),datasets:[{data:ae.map(([,v])=>v),backgroundColor:ac,borderColor:'#1E2940',borderWidth:3,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.label}: ${(ctx.raw/at*100).toFixed(1)}% (R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')})`}}}}})
     const leg=document.getElementById('ch-al-leg')
     if(leg) leg.innerHTML=ae.map(([l],i)=>`<div style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:9px;height:9px;border-radius:2px;background:${ac[i]};display:inline-block"></span><span style="color:var(--txt2)">${l}</span><span style="color:var(--mut)">${(ae[i][1]/at*100).toFixed(1)}%</span></div>`).join('')
-    // 4. Top despesas
+    // 4. Top despesas por grupo (padronizado com o resto do app)
     const catD={}
-    lancs.filter(l=>l.fluxo==='Saída'&&l.data>=de&&l.data<=ate&&l.status==='Realizado').forEach(l=>{catD[l.tipo]=(catD[l.tipo]||0)+l.valor})
+    lancs.filter(l=>l.fluxo==='Saída'&&l.data>=de&&l.data<=ate&&l.status==='Realizado').forEach(l=>{const g=l.grupo||'Sem grupo';catD[g]=(catD[g]||0)+l.valor})
     const topD=Object.entries(catD).sort((a,b)=>b[1]-a[1]).slice(0,7)
     chartsRef.current.td?.destroy()
     const c4=document.getElementById('ch-td')
-    if(c4) chartsRef.current.td=new Chart(c4,{type:'bar',data:{labels:topD.map(([k])=>k.replace('Despesa com ','').slice(0,16)),datasets:[{label:'Despesas',data:topD.map(([,v])=>v),backgroundColor:'rgba(248,113,113,.7)',borderRadius:3,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}`}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8B95A8',font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}},y:{grid:{display:false},ticks:{color:'#A8B3C4',font:{size:10}}}}}})
+    if(c4) chartsRef.current.td=new Chart(c4,{type:'bar',data:{labels:topD.map(([k])=>k.slice(0,16)),datasets:[{label:'Despesas',data:topD.map(([,v])=>v),backgroundColor:'rgba(248,113,113,.7)',borderRadius:3,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}`}}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8B95A8',font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}},y:{grid:{display:false},ticks:{color:'#A8B3C4',font:{size:10}}}}}})
+    // 5. Pra onde foi o dinheiro — donut por grupo (mesmo período)
+    const totGrupos = topD.reduce((s,[,v])=>s+v,0)
+    const corGrupo = i => ['#F87171','#FB923C','#FBBF24','#A78BFA','#60A5FA','#6EE7B7','#F472B6'][i%7]
+    chartsRef.current.gp?.destroy()
+    const c5=document.getElementById('ch-gp')
+    if(c5) chartsRef.current.gp=new Chart(c5,{type:'doughnut',data:{labels:topD.map(([k])=>k),datasets:[{data:topD.map(([,v])=>v),backgroundColor:topD.map((_,i)=>corGrupo(i)),borderColor:'#1E2940',borderWidth:3,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.label}: ${(ctx.raw/totGrupos*100).toFixed(1)}% (R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')})`}}}}})
+    const legGp=document.getElementById('ch-gp-leg')
+    if(legGp) legGp.innerHTML=topD.map(([l,v],i)=>`<div style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:9px;height:9px;border-radius:2px;background:${corGrupo(i)};display:inline-block"></span><span style="color:var(--txt2)">${l}</span><span style="color:var(--mut)">${(v/totGrupos*100).toFixed(1)}%</span></div>`).join('')
   }
 
   const kpis=[
-    ...(saldoIni!==null?[{lbl:'Saldo inicial',val:fmtS(saldoIni),sub:diaAnt?.split('-').reverse().join('/')||'',color:'var(--mut)'}]:[]),
     {lbl:'Patrimônio Atual',val:fmtS(pat),sub:`↑ ${pct.toFixed(1)}% da meta`,color:'var(--acc)',sub2:'up'},
     {lbl:'Saldo projetado',val:fmtS(saldoProj),sub:`A realizar: ${fmtS(aRec-aSai)}`,color:saldoProj>=pat?'var(--acc)':'var(--amb)'},
-    {lbl:'Receitas período',val:fmtS(rec),sub:`${lancPeriodo.length} lançamentos`,color:'var(--blue)',sub2:'up'},
-    {lbl:'Despesas período',val:fmtS(des),sub:'Saídas totais',color:'var(--red)'},
+    {lbl:'Receitas período',val:fmtS(rec),sub:`${lancPeriodo.length} lanç.${recVar!==null?` · ${recVar>=0?'↑':'↓'}${Math.abs(recVar).toFixed(0)}% vs anterior`:''}`,color:'var(--blue)',sub2:recVar===null?'up':recVar>=0?'up':'dn'},
+    {lbl:'Despesas período',val:fmtS(des),sub:desVar!==null?`${desVar>=0?'↑':'↓'}${Math.abs(desVar).toFixed(0)}% vs período anterior`:'Saídas totais',color:'var(--red)',sub2:desVar===null?undefined:desVar>=0?'dn':'up'},
     {lbl:'Saldo do período',val:fmtS(Math.abs(saldo)),sub:saldo>=0?'Positivo':'Negativo',color:saldo>=0?'var(--acc)':'var(--red)',sub2:saldo>=0?'up':'dn'},
     {lbl:'Taxa de poupança',val:`${txP.toFixed(1)}%`,sub:txP>=20?'Boa':'Abaixo do ideal',color:'var(--amb)',sub2:txP>=20?'up':'warn'},
     ...(nUrg>0?[{lbl:'Alertas urgentes',val:`${nUrg}`,sub:'Vencem em 7 dias',color:'var(--red)',sub2:'dn'}]:[]),
@@ -519,7 +538,7 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
           <input type="date" value={ate} onChange={e=>setAte(e.target.value)} className="fsel"/>
         </div>
         <div style={{display:'flex',gap:'6px',flexWrap:'wrap',paddingBottom:'1px'}}>
-          {[['mes','Este mês'],['ant','Mês anterior'],['ytd','YTD 2026'],['all','Tudo']].map(([v,l])=>(
+          {[['mes','Este mês'],['ant','Mês anterior'],['prox','Próximo mês'],['ytd',`YTD ${new Date().getFullYear()}`],['all','Tudo']].map(([v,l])=>(
             <button key={v} className="btn btn-s btn-sm" onClick={()=>setRange(v)}>{l}</button>
           ))}
         </div>
@@ -534,6 +553,23 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
           </div>
         ))}
       </div>
+
+      {proximosVenc.length>0 && (
+        <div className="card" style={{marginBottom:'20px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'10px'}}>
+            <div style={{fontSize:'13px',fontWeight:700}}>⏰ Vencendo nos próximos 7 dias</div>
+            <span style={{fontSize:'11px',color:'var(--mut)'}}>{proximosVenc.length} conta(s)</span>
+          </div>
+          {proximosVenc.slice(0,4).map(l=>(
+            <div key={l.id} style={{display:'flex',alignItems:'center',gap:'10px',padding:'7px 0',borderTop:'1px solid var(--brd)'}}>
+              <span style={{fontSize:'11px',color:'var(--mut)',minWidth:'40px'}}>{l.data.split('-').reverse().join('/').slice(0,5)}</span>
+              <span style={{flex:1,fontSize:'12px',color:'var(--txt)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{l.descricao}</span>
+              <span style={{fontSize:'12px',fontWeight:700,color:l.fluxo==='Entrada'?'var(--acc)':'var(--red)'}}>{l.fluxo==='Entrada'?'+':'-'}R${fmt(l.valor)}</span>
+            </div>
+          ))}
+          {proximosVenc.length>4 && <div style={{fontSize:'11px',color:'var(--mut)',marginTop:'6px'}}>+{proximosVenc.length-4} outra(s) — veja em Alertas</div>}
+        </div>
+      )}
 
       <div className="sec-title">Meta de patrimônio</div>
       <div className="card" style={{marginBottom:'20px'}}>
@@ -643,7 +679,16 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
             <div id="ch-al-leg" style={{fontSize:'11px',lineHeight:'2.2',flexShrink:0,minWidth:'110px'}}/>
           </div>
         </div>
-        <div className="chart-card"><div className="chart-title">Top despesas</div><div className="chart-sub">No período selecionado</div><div style={{position:'relative',height:'190px'}}><canvas id="ch-td"/></div></div>
+        <div className="chart-card"><div className="chart-title">Top despesas por grupo</div><div className="chart-sub">No período selecionado</div><div style={{position:'relative',height:'190px'}}><canvas id="ch-td"/></div></div>
+      </div>
+      <div className="chart-grid">
+        <div className="chart-card">
+          <div className="chart-title">Pra onde foi o dinheiro</div><div className="chart-sub">Despesas por grupo — % do período</div>
+          <div style={{display:'flex',alignItems:'center',gap:'20px'}}>
+            <div style={{position:'relative',height:'190px',flex:1}}><canvas id="ch-gp"/></div>
+            <div id="ch-gp-leg" style={{fontSize:'11px',lineHeight:'2.2',flexShrink:0,minWidth:'110px'}}/>
+          </div>
+        </div>
       </div>
 
       <div className="sec-title">Lançamentos recentes</div>
