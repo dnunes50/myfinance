@@ -172,6 +172,7 @@ function DashboardInner() {
   const DIEGO_ID  = 'bb059b55-b4e5-4b3c-8f2b-78183f3118c2'
   const mostrarBase = !filtroUser || filtroUser === DIEGO_ID // dados históricos estáticos só valem p/ consolidado ou Diego
   const bancosFiltered = filtroUser ? bancosDb.filter(b => b.user_id === filtroUser) : bancosDb
+  const metaTotal = filtroUser ? 1000000 : 1000000 * Math.max(membros.length, 1) // R$1M por pessoa; consolidado soma
   const bancos    = calcBancos(lancsView, true, bancosFiltered)
   const fornHist  = [...new Set(lancsView.map(l=>l.fornecedor).filter(Boolean))]
 
@@ -199,7 +200,7 @@ function DashboardInner() {
   )
 
   const shared = {
-    lancs: lancsView, bancos, orcDb, fornHist, flashId, mostrarBase,
+    lancs: lancsView, bancos, orcDb, fornHist, flashId, mostrarBase, metaTotal,
     membros, userId, bancosDb, bancosFiltered, categoriasDb, reloadCadastros: loadAll,
     onSave:handleSave, onDelete:handleDelete,
     // FIX 10: shared filters
@@ -276,14 +277,14 @@ function DashboardInner() {
 // ══════════════════════════════════════════════════════════════
 // TAB DASHBOARD
 // ══════════════════════════════════════════════════════════════
-function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[] }) {
+function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal=1000000 }) {
   const hoje = new Date().toISOString().slice(0,10)
   const chartsRef = useRef({})
   const [de,  setDe]  = useState(()=>{ const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10) })
   const [ate, setAte] = useState(()=>{ const d=new Date(); d.setMonth(d.getMonth()+1); d.setDate(0); return d.toISOString().slice(0,10) })
 
   const pat  = bancos.reduce((s,b)=>s+b.valor,0)
-  const meta = 1000000
+  const meta = metaTotal
   const pct  = Math.min(100,pat/meta*100)
 
   const lancPeriodo = lancs.filter(l=>l.status==='Realizado'&&l.data>=de&&l.data<=ate)
@@ -342,7 +343,7 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[] }) {
     })() : []
     chartsRef.current.ev?.destroy()
     const c1=document.getElementById('ch-ev')
-    if(c1) chartsRef.current.ev=new Chart(c1,{type:'line',data:{labels:evD.map(e=>e.mes),datasets:[{label:'Patrimônio',data:evD.map(e=>e.pat),borderColor:'#6EE7B7',backgroundColor:'rgba(110,231,183,.08)',borderWidth:2,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#6EE7B7'},{label:'Meta',data:evD.map(()=>1000000),borderColor:'rgba(252,211,77,.35)',borderWidth:1.5,borderDash:[5,4],fill:false,tension:0,pointRadius:0}]},options:{...defaults}})
+    if(c1) chartsRef.current.ev=new Chart(c1,{type:'line',data:{labels:evD.map(e=>e.mes),datasets:[{label:'Patrimônio',data:evD.map(e=>e.pat),borderColor:'#6EE7B7',backgroundColor:'rgba(110,231,183,.08)',borderWidth:2,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#6EE7B7'},{label:'Meta',data:evD.map(()=>meta),borderColor:'rgba(252,211,77,.35)',borderWidth:1.5,borderDash:[5,4],fill:false,tension:0,pointRadius:0}]},options:{...defaults}})
     // 2. Rec vs Des
     const mF=ALL_MESES.filter(m=>{const[mm,yy]=m.split('/'),d1=`20${yy}-${mm}-01`,d2=`20${yy}-${mm}-31`;if(de&&d2<de)return false;if(ate&&d1>ate)return false;return true})
     chartsRef.current.rd?.destroy()
@@ -375,7 +376,7 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[] }) {
     {lbl:'Saldo do período',val:fmtS(Math.abs(saldo)),sub:saldo>=0?'Positivo':'Negativo',color:saldo>=0?'var(--acc)':'var(--red)',sub2:saldo>=0?'up':'dn'},
     {lbl:'Taxa de poupança',val:`${txP.toFixed(1)}%`,sub:txP>=20?'Boa':'Abaixo do ideal',color:'var(--amb)',sub2:txP>=20?'up':'warn'},
     ...(nUrg>0?[{lbl:'Alertas urgentes',val:`${nUrg}`,sub:'Vencem em 7 dias',color:'var(--red)',sub2:'dn'}]:[]),
-    {lbl:'Falta para meta',val:fmtS(meta-pat),sub:'R$1 milhão · hoje',color:'#A78BFA'},
+    {lbl:'Falta para meta',val:fmtS(meta-pat),sub:`${fmtS(meta)} · hoje`,color:'#A78BFA'},
     {lbl:'Projetado Dez/26',val:fmtS(patFimAno),sub:patFimAno>=meta?'🎯 Meta!':'Falta '+fmtS(meta-patFimAno),color:patFimAno>=meta?'var(--acc)':'#A78BFA',sub2:patFimAno>=meta?'up':''},
   ]
 
@@ -882,13 +883,13 @@ function TabFluxo({ lancs, mostrarBase, bancosDb=[] }) {
 // ══════════════════════════════════════════════════════════════
 // TAB PATRIMÔNIO — calcula evolução dinamicamente dos lançamentos
 // ══════════════════════════════════════════════════════════════
-function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[] }) {
+function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[], metaTotal=1000000 }) {
   const mesAtual = getMesAtual()
 
   const pat      = bancos.reduce((s,b)=>s+b.valor,0)
   const saldoIni = bancosFiltered.reduce((s,b)=>s+b.saldo_abertura,0)
   const varPat   = pat-saldoIni
-  const pct      = Math.min(100,pat/1000000*100)
+  const pct      = Math.min(100,pat/metaTotal*100)
   const caixa    = bancos.filter(b=>b.classe==='Caixa').reduce((s,b)=>s+b.valor,0)
   const intl     = bancos.filter(b=>b.classe==='Investimento Internacional').reduce((s,b)=>s+b.valor,0)
   const cripto   = bancos.filter(b=>b.classe==='Cripto').reduce((s,b)=>s+b.valor,0)
@@ -907,7 +908,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[] }) {
           {lbl:'Variação desde abertura',val:`${varPat>=0?'+':''}R$${fmt(varPat)}`,sub:saldoIni?`${((varPat/saldoIni)*100).toFixed(1)}%`:'',color:varPat>=0?'var(--acc)':'var(--red)',sub2:varPat>=0?'up':'dn'},
           {lbl:'Caixa total',val:fmtS(caixa),sub:`${pat>0?(caixa/pat*100).toFixed(1):0}% do patrimônio`,color:'var(--blue)'},
           {lbl:'Investim. Internacional',val:fmtS(intl),sub:`${pat>0?(intl/pat*100).toFixed(1):0}% do patrimônio`,color:'#A78BFA'},
-          {lbl:'Falta para R$ 1M',val:fmtS(1000000-pat),sub:'Meta: dez/2026',color:'var(--amb)',sub2:'warn'},
+          {lbl:`Falta para ${fmtS(metaTotal)}`,val:fmtS(metaTotal-pat),sub:'Meta: dez/2026',color:'var(--amb)',sub2:'warn'},
         ].map((k,i)=>(
           <div key={i} className="kpi" style={{'--ka':k.color}}>
             <div className="kpi-lbl">{k.lbl}</div>
@@ -918,7 +919,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[] }) {
       </div>
       <div className="card" style={{marginBottom:'24px'}}>
         <div style={{display:'flex',justifyContent:'space-between',marginBottom:'8px'}}>
-          <div style={{fontWeight:700}}>Meta: R$ 1.000.000</div>
+          <div style={{fontWeight:700}}>Meta: {fmtS(metaTotal)}</div>
           <div style={{color:'var(--acc)',fontWeight:600}}>{pct.toFixed(1)}%</div>
         </div>
         <div className="prog"><div className="prog-fill" style={{width:`${pct}%`}}/></div>
