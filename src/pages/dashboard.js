@@ -321,7 +321,7 @@ function TabDashboard({ lancs, bancos, mostrarBase }) {
     if(c2) chartsRef.current.rd=new Chart(c2,{type:'bar',data:{labels:mF.map(m=>LAB_MAP[m]||m),datasets:[{label:'Receitas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Entrada'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(110,231,183,.7)',borderRadius:4,borderSkipped:false},{label:'Despesas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Saída'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(248,113,113,.7)',borderRadius:4,borderSkipped:false}]},options:{...defaults,plugins:{...defaults.plugins,tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.dataset.label}: R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}`}}}}})
     // 3. Alocação donut
     const cls={Caixa:0,Internacional:0,Cripto:0}
-    bancos.forEach(b=>{if(['C6 Bank','Nubank','Santander','Clear'].includes(b.nome))cls.Caixa+=b.valor;else if(b.nome==='Onil')cls.Internacional+=b.valor;else if(b.nome==='Binance')cls.Cripto+=b.valor})
+    bancos.forEach(b=>{ if(b.classe==='Caixa')cls.Caixa+=b.valor; else if(b.classe==='Investimento Internacional')cls.Internacional+=b.valor; else if(b.classe==='Cripto')cls.Cripto+=b.valor; else cls.Caixa+=b.valor })
     const ae=Object.entries(cls).filter(([,v])=>v>0),at=ae.reduce((s,[,v])=>s+v,0),ac=['#60A5FA','#6EE7B7','#A78BFA']
     chartsRef.current.al?.destroy()
     const c3=document.getElementById('ch-al')
@@ -884,7 +884,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[] }) {
       s[b.nome] = Math.round(((mostrarBase?b.ab:0) + deltaReal + deltaProj)*100)/100
     })
     const pat = Math.round(Object.values(s).reduce((t,v)=>t+v,0)*100)/100
-    return { mes, nubank:s['Nubank'], c6:s['C6 Bank'], san:s['Santander'], clear:s['Clear'], bin:s['Binance'], onil:s['Onil'], pat }
+    return { mes, saldos:s, pat }
   })
 
   return(
@@ -944,7 +944,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[] }) {
       <div className="sec-title">Evolução patrimonial</div>
       <div className="tbl-wrap">
         <table>
-          <thead><tr><th>Mês</th><th style={{textAlign:'right'}}>Nubank</th><th style={{textAlign:'right'}}>C6 Bank</th><th className="hide-mob" style={{textAlign:'right'}}>Binance</th><th style={{textAlign:'right'}}>Onil</th><th style={{textAlign:'right'}}>Total</th><th style={{textAlign:'right'}}>% Meta</th></tr></thead>
+          <thead><tr><th>Mês</th>{BANCOS_BASE.map(b=><th key={b.nome} style={{textAlign:'right'}}>{b.nome}</th>)}<th style={{textAlign:'right'}}>Total</th><th style={{textAlign:'right'}}>% Meta</th></tr></thead>
           <tbody>
             {evolucaoDinamica.map((e,i)=>{
               const prev  = i>0?evolucaoDinamica[i-1].pat:e.pat
@@ -958,10 +958,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[] }) {
                     {isNow&&<span style={{fontSize:'9px',background:'var(--acc)',color:'#0B0F1A',padding:'1px 5px',borderRadius:'8px',fontWeight:700,marginLeft:'4px'}}>HOJE</span>}
                     {isFut&&<span style={{fontSize:'9px',color:'var(--mut)',marginLeft:'4px'}}>(proj.)</span>}
                   </td>
-                  <td className="td-r">{e.nubank>0?`R$${fmt(e.nubank)}`:'—'}</td>
-                  <td className="td-r">{e.c6>0?`R$${fmt(e.c6)}`:'—'}</td>
-                  <td className="td-r hide-mob">{e.bin>0?`R$${fmt(e.bin)}`:'—'}</td>
-                  <td className="td-r" style={{color:'#A78BFA'}}>{e.onil>0?`R$${fmt(e.onil)}`:'—'}</td>
+                  {BANCOS_BASE.map(b=><td key={b.nome} className="td-r">{e.saldos[b.nome]>0?`R$${fmt(e.saldos[b.nome])}`:'—'}</td>)}
                   <td className="td-r" style={{fontWeight:700,color:isNow?'var(--acc)':'var(--txt)'}}>R${fmt(e.pat)}</td>
                   <td className="td-r" style={{color:vP>=0?'var(--acc)':'var(--red)'}}>{i===0?'—':`${vP>=0?'+':''}${vP.toFixed(1)}%`}</td>
                 </tr>
