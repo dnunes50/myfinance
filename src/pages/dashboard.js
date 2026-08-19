@@ -311,7 +311,7 @@ function DashboardInner() {
 // ══════════════════════════════════════════════════════════════
 // TAB DASHBOARD
 // ══════════════════════════════════════════════════════════════
-function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal=1000000 }) {
+function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal=1000000, orcDb=[], categoriasDb=[] }) {
   const hoje = new Date().toISOString().slice(0,10)
   const chartsRef = useRef({})
   const [de,  setDe]  = useState(()=>{ const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10) })
@@ -335,6 +335,67 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
   const patFimAno  = pat+entFimAno-saiFimAno
   const em7  = new Date(); em7.setDate(em7.getDate()+7)
   const nUrg = lancs.filter(l=>l.status==='A Realizar'&&l.data>=hoje&&l.data<=em7.toISOString().slice(0,10)).length
+
+  // ═══ Análise orçamentária por grupo ═══
+  const mesAtualFiltro = getMesAtualFiltro()
+  const diaHoje  = new Date().getDate()
+  const diasNoMes= new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate()
+  const pctMes   = diaHoje/diasNoMes // quanto do mês já passou (ritmo esperado)
+
+  // orçado por grupo, a partir do cadastro de categorias + orcamento salvo
+  const orcPorGrupo = (() => {
+    const porNome = Object.fromEntries(orcDb.map(o=>[o.cat, o]))
+    const acc = {}
+    categoriasDb.filter(c=>c.tipo==='despesa'&&c.grupo).forEach(c=>{
+      const o = porNome[c.grupo]
+      const [mm,yy] = mesAtualFiltro.split('/')
+      const custom = o?.custom_meses?.[`20${yy}-${mm}`]
+      const valor = custom ?? o?.valor_default ?? c.orcamento_default ?? 0
+      if(!acc[c.grupo]) acc[c.grupo] = { grupo:c.grupo, orcado:0, _vistos:new Set() }
+      // o orçamento é por grupo, não por categoria — conta só uma vez
+      if(!acc[c.grupo]._vistos.has(c.grupo)) { acc[c.grupo].orcado += valor; acc[c.grupo]._vistos.add(c.grupo) }
+    })
+    return acc
+  })()
+
+  // realizado + pendente do mês corrente, por grupo
+  const lancMes = lancs.filter(l=>l.mes===mesAtualFiltro && l.fluxo==='Saída')
+  const grupoStats = (() => {
+    const acc = {}
+    const garante = g => { if(!acc[g]) acc[g] = {grupo:g, orcado:orcPorGrupo[g]?.orcado||0, realizado:0, pendente:0} ; return acc[g] }
+    Object.keys(orcPorGrupo).forEach(garante)
+    lancMes.forEach(l=>{
+      const g = l.grupo || 'Sem grupo'
+      const r = garante(g)
+      if(l.status==='Realizado') r.realizado += l.valor
+      else r.pendente += l.valor
+    })
+    // média dos 3 meses anteriores, por grupo (comparativo)
+    const mesesAnt = MESES_RANGE.map(m=>`${m.mm}/${m.yy}`)
+    const idxAtual = mesesAnt.indexOf(mesAtualFiltro)
+    const ultimos3 = idxAtual>0 ? mesesAnt.slice(Math.max(0,idxAtual-3), idxAtual) : []
+    Object.values(acc).forEach(r=>{
+      const gastos = ultimos3.map(m =>
+        lancs.filter(l=>l.mes===m && l.fluxo==='Saída' && l.status==='Realizado' && (l.grupo||'Sem grupo')===r.grupo)
+             .reduce((s,l)=>s+l.valor,0)
+      )
+      r.media3 = gastos.length ? gastos.reduce((s,v)=>s+v,0)/gastos.length : 0
+      r.projetado = pctMes>0 ? Math.max(r.realizado/pctMes, r.realizado+r.pendente) : r.realizado+r.pendente
+      r.pctUsado  = r.orcado>0 ? (r.realizado/r.orcado*100) : 0
+    })
+    return Object.values(acc)
+      .filter(r=>r.orcado>0 || r.realizado>0 || r.pendente>0)
+      .sort((a,b)=> (b.pctUsado||0)-(a.pctUsado||0))
+  })()
+
+  // 5. Saldo livre real do mês: receita realizada − despesas realizadas − contas ainda a pagar
+  const recMes  = lancs.filter(l=>l.mes===mesAtualFiltro&&l.fluxo==='Entrada'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)
+  const desMes  = lancs.filter(l=>l.mes===mesAtualFiltro&&l.fluxo==='Saída'  &&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)
+  const pendMes = lancs.filter(l=>l.mes===mesAtualFiltro&&l.fluxo==='Saída'  &&l.status==='A Realizar').reduce((s,l)=>s+l.valor,0)
+  const saldoLivre = recMes - desMes - pendMes
+  const totOrcado  = grupoStats.reduce((s,r)=>s+r.orcado,0)
+  const totProj    = grupoStats.reduce((s,r)=>s+r.projetado,0)
+  const nEstourando= grupoStats.filter(r=>r.orcado>0 && r.projetado>r.orcado).length
 
   // FIX 6: saldo inicial from SALDOS_REF
   const diaAnt = de ? new Date(new Date(de+'T00:00:00').getTime()-86400000).toISOString().slice(0,10) : null
@@ -446,7 +507,7 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
       <div className="card" style={{marginBottom:'20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',marginBottom:'4px'}}>
           <div>
-            <div style={{fontSize:'15px',fontWeight:600}}>Progresso rumo a R$ 1.000.000</div>
+            <div style={{fontSize:'15px',fontWeight:600}}>Progresso rumo a {fmtS(meta)}</div>
             <div style={{fontSize:'12px',color:'var(--acc)',marginTop:'2px'}}>
               Faltam R${fmt(meta-pat)} · Projetado Dez/26: R${fmt(patFimAno)} ({(patFimAno/meta*100).toFixed(1)}%)
             </div>
@@ -455,8 +516,86 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
         </div>
         <div className="prog"><div className="prog-fill" style={{width:`${pct}%`}}/></div>
         <div style={{display:'flex',justifyContent:'space-between',fontSize:'11px',color:'var(--mut)'}}>
-          <span>R$ 0</span><span>Atual: R${fmt(pat)}</span><span>R$ 1.000.000</span>
+          <span>R$ 0</span><span>Atual: R${fmt(pat)}</span><span>{fmtS(meta)}</span>
         </div>
+      </div>
+
+      {/* ═══ Controle orçamentário do mês ═══ */}
+      <div className="sec-title">Controle do mês · {MESES_LABEL[mesAtualFiltro]||mesAtualFiltro}</div>
+
+      {/* 5. Saldo livre + visão geral */}
+      <div className="kpi-grid">
+        <div className="kpi" style={{'--ka':saldoLivre>=0?'var(--acc)':'var(--red)'}}>
+          <div className="kpi-lbl">Saldo livre do mês</div>
+          <div className="kpi-val" style={{color:saldoLivre>=0?'var(--acc)':'var(--red)'}}>{fmtS(saldoLivre)}</div>
+          <div className="kpi-sub">Receita − gastos − contas a pagar</div>
+        </div>
+        <div className="kpi" style={{'--ka':'var(--blue)'}}>
+          <div className="kpi-lbl">Orçado no mês</div>
+          <div className="kpi-val" style={{color:'var(--blue)'}}>{fmtS(totOrcado)}</div>
+          <div className="kpi-sub">{grupoStats.filter(r=>r.orcado>0).length} grupos com orçamento</div>
+        </div>
+        <div className="kpi" style={{'--ka':totProj>totOrcado&&totOrcado>0?'var(--red)':'var(--acc)'}}>
+          <div className="kpi-lbl">Projeção de fechamento</div>
+          <div className="kpi-val" style={{color:totProj>totOrcado&&totOrcado>0?'var(--red)':'var(--acc)'}}>{fmtS(totProj)}</div>
+          <div className="kpi-sub">No ritmo atual ({(pctMes*100).toFixed(0)}% do mês)</div>
+        </div>
+        <div className="kpi" style={{'--ka':nEstourando>0?'var(--amb)':'var(--acc)'}}>
+          <div className="kpi-lbl">Grupos estourando</div>
+          <div className="kpi-val" style={{color:nEstourando>0?'var(--amb)':'var(--acc)'}}>{nEstourando}</div>
+          <div className="kpi-sub">{nEstourando>0?'Projetados acima do orçado':'Tudo dentro do orçamento'}</div>
+        </div>
+      </div>
+
+      {/* 1+2+3+4. Barras por grupo com ritmo, projeção e comparativo */}
+      <div className="card" style={{marginBottom:'20px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:'4px',flexWrap:'wrap',gap:'6px'}}>
+          <div style={{fontSize:'14px',fontWeight:700}}>Orçado × Realizado por grupo</div>
+          <div style={{fontSize:'11px',color:'var(--mut)'}}>
+            <span style={{color:'var(--txt2)'}}>▏</span> marcador = ritmo esperado hoje ({(pctMes*100).toFixed(0)}% do mês)
+          </div>
+        </div>
+        {grupoStats.length===0 && <div className="empty"><p>Sem despesas ou orçamento definido neste mês</p></div>}
+        {grupoStats.map(r=>{
+          const pctReal = r.orcado>0 ? Math.min(100, r.realizado/r.orcado*100) : 0
+          const pctPend = r.orcado>0 ? Math.min(100-pctReal, r.pendente/r.orcado*100) : 0
+          const estourou= r.orcado>0 && r.projetado>r.orcado
+          const acimaRitmo = r.orcado>0 && (r.realizado/r.orcado) > pctMes
+          const cor = r.orcado===0 ? 'var(--mut)' : estourou ? 'var(--red)' : acimaRitmo ? 'var(--amb)' : 'var(--acc)'
+          const varMedia = r.media3>0 ? ((r.realizado-r.media3)/r.media3*100) : null
+          return (
+            <div key={r.grupo} style={{marginBottom:'16px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',fontSize:'12px',marginBottom:'5px',gap:'8px'}}>
+                <span style={{fontWeight:600,color:'var(--txt)'}}>{r.grupo}</span>
+                <span style={{color:'var(--mut)',fontSize:'11px',textAlign:'right'}}>
+                  <strong style={{color:cor}}>R${fmt(r.realizado)}</strong>
+                  {r.orcado>0 ? ` / R$${fmt(r.orcado)}` : ' (sem orçamento)'}
+                </span>
+              </div>
+              {/* barra com marcador de ritmo */}
+              <div style={{position:'relative',background:'var(--bg)',borderRadius:'99px',height:'9px',overflow:'hidden'}}>
+                <div style={{position:'absolute',left:0,top:0,bottom:0,width:`${pctReal}%`,background:cor,borderRadius:'99px',transition:'width .5s'}}/>
+                {pctPend>0 && <div style={{position:'absolute',left:`${pctReal}%`,top:0,bottom:0,width:`${pctPend}%`,background:cor,opacity:.3}}/>}
+                {r.orcado>0 && (
+                  <div style={{position:'absolute',left:`${Math.min(100,pctMes*100)}%`,top:'-2px',bottom:'-2px',width:'2px',background:'var(--txt2)',opacity:.8}}/>
+                )}
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'10px',color:'var(--mut)',marginTop:'4px',gap:'8px',flexWrap:'wrap'}}>
+                <span>
+                  {r.pendente>0 && <>A pagar: R${fmt(r.pendente)} · </>}
+                  {r.orcado>0 && <>Projeção: <span style={{color:estourou?'var(--red)':'var(--txt2)'}}>R${fmt(r.projetado)}</span></>}
+                </span>
+                <span>
+                  {varMedia!==null && (
+                    <span style={{color: varMedia>15?'var(--red)': varMedia<-15?'var(--acc)':'var(--mut)'}}>
+                      {varMedia>=0?'↑':'↓'} {Math.abs(varMedia).toFixed(0)}% vs média 3m (R${fmt(r.media3)})
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       <div className="sec-title">Análise visual</div>
