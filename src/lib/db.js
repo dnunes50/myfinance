@@ -39,43 +39,43 @@ export async function getMembros() {
 
 // ── Bancos ───────────────────────────────────────────────────
 export async function getBancos() {
-  const { data, error } = await sb.from('bancos').select('*').eq('ativo', true).order('ordem')
+  const { data, error } = await sb.from('bancos_myfinance').select('*').eq('ativo', true).order('ordem')
   if (error) throw error
   return data || []
 }
 export async function criarBanco(b) {
-  const { data, error } = await sb.from('bancos').insert([b]).select().single()
+  const { data, error } = await sb.from('bancos_myfinance').insert([b]).select().single()
   if (error) throw error
   return data
 }
 export async function editarBanco(id, campos) {
-  const { data, error } = await sb.from('bancos').update(campos).eq('id', id).select().single()
+  const { data, error } = await sb.from('bancos_myfinance').update(campos).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function excluirBanco(id) {
-  const { error } = await sb.from('bancos').update({ativo:false}).eq('id', id)
+  const { error } = await sb.from('bancos_myfinance').update({ativo:false}).eq('id', id)
   if (error) throw error
 }
 
 // ── Categorias (plano de contas) ────────────────────────────
 export async function getCategorias() {
-  const { data, error } = await sb.from('categorias').select('*').eq('ativo', true).order('ordem')
+  const { data, error } = await sb.from('categorias_myfinance').select('*').eq('ativo', true).order('ordem')
   if (error) throw error
   return data || []
 }
 export async function criarCategoria(c) {
-  const { data, error } = await sb.from('categorias').insert([c]).select().single()
+  const { data, error } = await sb.from('categorias_myfinance').insert([c]).select().single()
   if (error) throw error
   return data
 }
 export async function editarCategoria(id, campos) {
-  const { data, error } = await sb.from('categorias').update(campos).eq('id', id).select().single()
+  const { data, error } = await sb.from('categorias_myfinance').update(campos).eq('id', id).select().single()
   if (error) throw error
   return data
 }
 export async function excluirCategoria(id) {
-  const { error } = await sb.from('categorias').update({ativo:false}).eq('id', id)
+  const { error } = await sb.from('categorias_myfinance').update({ativo:false}).eq('id', id)
   if (error) throw error
 }
 
