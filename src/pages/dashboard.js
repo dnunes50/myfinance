@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { sb } from '../lib/supabase'
-import { getLancamentos, criarLancamento, criarLancamentos, editarLancamento, excluirLancamento, getOrcamento, salvarOrcamento, getMembros } from '../lib/db'
+import { getLancamentos, criarLancamento, criarLancamentos, editarLancamento, excluirLancamento, getOrcamento, salvarOrcamento, getMembros, getBancos, criarBanco, editarBanco, excluirBanco, getCategorias, criarCategoria, editarCategoria, excluirCategoria } from '../lib/db'
 import { ToastProvider, useToast } from '../components/Toast'
 import ModalLancamento from '../components/ModalLancamento'
 import Modal from '../components/Modal'
 import {
-  BANCOS_CONFIG, SALDOS_REF, EVOLUCAO, ORC_CATEGORIAS,
-  BANCOS_LISTA, fmt, fmtS, dateToMes, calcUrgencia, getMesAtual
+  SALDOS_REF, EVOLUCAO,
+  fmt, fmtS, dateToMes, calcUrgencia, getMesAtual
 } from '../lib/constantes'
 
 // Mês atual no formato de filtro '04/26'
@@ -32,10 +32,12 @@ const TABS = [
   {id:'fluxo',       label:'Fluxo',       icon:'📈'},
   {id:'patrimonio',  label:'Patrimônio',  icon:'🏦'},
   {id:'orcamento',   label:'Orçamento',   icon:'💼'},
+  {id:'bancos',      label:'Bancos',      icon:'🏛️'},
+  {id:'categorias',  label:'Categorias',  icon:'🏷️'},
 ]
 
-function calcBancos(lancs, incluirBase = true) {
-  return BANCOS_CONFIG.map(b => {
+function calcBancos(lancs, incluirBase = true, bancosCad = []) {
+  return bancosCad.map(b => {
     const movs  = lancs.filter(l => l.banco===b.nome && l.status==='Realizado' && l.data>b.data_abertura)
     const delta = movs.reduce((s,l) => l.fluxo==='Entrada' ? s+l.valor : s-l.valor, 0)
     const valor = (incluirBase ? b.saldo_abertura : 0) + delta
@@ -59,6 +61,8 @@ function DashboardInner() {
   const [userId,    setUserId]    = useState('')
   const [dateStr,   setDateStr]   = useState('')
   const [membros,   setMembros]   = useState([])
+  const [bancosDb,    setBancosDb]    = useState([])
+  const [categoriasDb,setCategoriasDb]= useState([])
   const [filtroUser, setFiltroUser] = useState('') // '' = consolidado
   // FIX 10: persist filters between tabs
   const [filtroMes,    setFiltroMes]    = useState(getMesAtualFiltro())
@@ -77,11 +81,13 @@ function DashboardInner() {
 
   async function loadAll() {
     try {
-      const [l, o, m] = await Promise.all([getLancamentos(), getOrcamento(), getMembros().catch(()=>[])])
+      const [l, o, m, bc, ct] = await Promise.all([getLancamentos(), getOrcamento(), getMembros().catch(()=>[]), getBancos().catch(()=>[]), getCategorias().catch(()=>[])])
       if (l.length===0) setNeedsSeed(true)
       else setLancs(l)
       setOrcDb(o)
       setMembros(m)
+      setBancosDb(bc)
+      setCategoriasDb(ct)
     } catch(e) { toast(e.message,'err') }
     finally { setLoading(false) }
   }
@@ -137,7 +143,7 @@ function DashboardInner() {
   const lancsView = filtroUser ? lancs.filter(l => l.user_id === filtroUser) : lancs
   const DIEGO_ID  = 'bb059b55-b4e5-4b3c-8f2b-78183f3118c2'
   const mostrarBase = !filtroUser || filtroUser === DIEGO_ID // dados históricos estáticos só valem p/ consolidado ou Diego
-  const bancos    = calcBancos(lancsView, mostrarBase)
+  const bancos    = calcBancos(lancsView, mostrarBase, bancosDb)
   const fornHist  = [...new Set(lancsView.map(l=>l.fornecedor).filter(Boolean))]
 
   if(loading) return (
@@ -165,7 +171,7 @@ function DashboardInner() {
 
   const shared = {
     lancs: lancsView, bancos, orcDb, fornHist, flashId, mostrarBase,
-    membros, userId,
+    membros, userId, bancosDb, categoriasDb, reloadCadastros: loadAll,
     onSave:handleSave, onDelete:handleDelete,
     // FIX 10: shared filters
     filtroMes, setFiltroMes, filtroTipo, setFiltroTipo,
@@ -230,6 +236,8 @@ function DashboardInner() {
         {tab==='fluxo'       && <TabFluxo        {...shared}/>}
         {tab==='patrimonio'  && <TabPatrimonio   {...shared}/>}
         {tab==='orcamento'   && <TabOrcamento    {...shared}/>}
+        {tab==='bancos'      && <TabBancos       {...shared}/>}
+        {tab==='categorias'  && <TabCategorias   {...shared}/>}
       </div>
     </div>
   )
@@ -426,7 +434,7 @@ function TabDashboard({ lancs, bancos, mostrarBase }) {
 // ══════════════════════════════════════════════════════════════
 // TAB LANÇAMENTOS — FIX 7 (sort), FIX 8 (search global), FIX 9 (flash), FIX 10 (persist filters)
 // ══════════════════════════════════════════════════════════════
-function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes, setFiltroMes, filtroTipo, setFiltroTipo, filtroStatus, setFiltroStatus, filtroBanco, setFiltroBanco, busca, setBusca, membros, userId }) {
+function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes, setFiltroMes, filtroTipo, setFiltroTipo, filtroStatus, setFiltroStatus, filtroBanco, setFiltroBanco, busca, setBusca, membros, userId, bancosDb, categoriasDb }) {
   const [modal,   setModal]   = useState({open:false,mode:'novo',lanc:null})
   // FIX 7: sortable columns
   const [sortCol, setSortCol] = useState('data')
@@ -565,7 +573,7 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
         </table>
       </div>
 
-      <ModalLancamento open={modal.open} onClose={()=>setModal({open:false,mode:'novo',lanc:null})} mode={modal.mode} lanc={modal.lanc} onSave={onSave} fornHist={fornHist} membros={membros} userId={userId}/>
+      <ModalLancamento open={modal.open} onClose={()=>setModal({open:false,mode:"novo",lanc:null})} mode={modal.mode} lanc={modal.lanc} onSave={onSave} fornHist={fornHist} membros={membros} userId={userId} bancosDb={bancosDb} categoriasDb={categoriasDb}/>
     </div>
   )
 }
@@ -573,7 +581,7 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
 // ══════════════════════════════════════════════════════════════
 // TAB ALERTAS — FIX 4: marcar como realizado direto
 // ══════════════════════════════════════════════════════════════
-function TabAlertas({ lancs, onSave, onDelete, membros, userId }) {
+function TabAlertas({ lancs, onSave, onDelete, membros, userId, bancosDb, categoriasDb }) {
   const { toast } = useToast()
   const [filtro, setFiltro] = useState('90dias')
   const [modal,  setModal]  = useState({open:false,lanc:null})
@@ -648,7 +656,7 @@ function TabAlertas({ lancs, onSave, onDelete, membros, userId }) {
         <div><div className="sec-title">A pagar</div>{renderList(pagar,'var(--red)')}</div>
         <div><div className="sec-title">A receber</div>{renderList(receber,'var(--acc)')}</div>
       </div>
-      <ModalLancamento open={modal.open} onClose={()=>setModal({open:false,lanc:null})} mode="editar" lanc={modal.lanc} onSave={onSave} fornHist={[]} membros={membros} userId={userId}/>
+      <ModalLancamento open={modal.open} onClose={()=>setModal({open:false,lanc:null})} mode="editar" lanc={modal.lanc} onSave={onSave} fornHist={[]} membros={membros} userId={userId} bancosDb={bancosDb} categoriasDb={categoriasDb}/>
     </div>
   )
 }
@@ -656,7 +664,7 @@ function TabAlertas({ lancs, onSave, onDelete, membros, userId }) {
 // ══════════════════════════════════════════════════════════════
 // TAB FLUXO — FIX 8: monthly summary
 // ══════════════════════════════════════════════════════════════
-function TabFluxo({ lancs, mostrarBase }) {
+function TabFluxo({ lancs, mostrarBase, bancosDb=[] }) {
   const hoje = new Date().toISOString().slice(0,10)
   const ULTIMA_REF = Object.keys(SALDOS_REF).sort().pop()
   const BANCO_CAMPO = {'C6 Bank':'c6','Nubank':'nubank','Onil':'onil','Santander':'san','Clear':'clear','Binance':'bin'}
@@ -728,7 +736,7 @@ function TabFluxo({ lancs, mostrarBase }) {
       <div style={{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center',marginBottom:'16px'}}>
         <select value={banco} onChange={e=>setBanco(e.target.value)} className="fsel">
           <option value="">Todos os bancos</option>
-          {BANCOS_LISTA.map(b=><option key={b}>{b}</option>)}
+          {bancosDb.map(b=><option key={b.id}>{b.nome}</option>)}
         </select>
         <input type="date" value={deStr} onChange={e=>setDeStr(e.target.value)} className="fsel"/>
         <span style={{color:'var(--mut)'}}>→</span>
@@ -832,27 +840,20 @@ function TabFluxo({ lancs, mostrarBase }) {
 // ══════════════════════════════════════════════════════════════
 // TAB PATRIMÔNIO — calcula evolução dinamicamente dos lançamentos
 // ══════════════════════════════════════════════════════════════
-function TabPatrimonio({ bancos, lancs, mostrarBase }) {
+function TabPatrimonio({ bancos, lancs, mostrarBase, bancosDb }) {
   const mesAtual = getMesAtual()
 
   const pat      = bancos.reduce((s,b)=>s+b.valor,0)
-  const saldoIni = mostrarBase ? 382436.07 : 0
+  const saldoIni = mostrarBase ? bancosDb.reduce((s,b)=>s+b.saldo_abertura,0) : 0
   const varPat   = pat-saldoIni
   const pct      = Math.min(100,pat/1000000*100)
-  const caixa    = bancos.filter(b=>['C6 Bank','Nubank','Santander','Clear'].includes(b.nome)).reduce((s,b)=>s+b.valor,0)
-  const intl     = bancos.filter(b=>b.nome==='Onil').reduce((s,b)=>s+b.valor,0)
-  const cripto   = bancos.filter(b=>b.nome==='Binance').reduce((s,b)=>s+b.valor,0)
+  const caixa    = bancos.filter(b=>b.classe==='Caixa').reduce((s,b)=>s+b.valor,0)
+  const intl     = bancos.filter(b=>b.classe==='Investimento Internacional').reduce((s,b)=>s+b.valor,0)
+  const cripto   = bancos.filter(b=>b.classe==='Cripto').reduce((s,b)=>s+b.valor,0)
   const alloc    = [{l:'Caixa',v:caixa,c:'var(--blue)'},{l:'Internacional',v:intl,c:'var(--acc)'},{l:'Cripto',v:cripto,c:'var(--amb)'}].filter(a=>a.v>0)
 
   // Calcula evolução patrimonial dinamicamente
-  const BANCOS_BASE = [
-    {nome:'Nubank',    ab:71281.86,  dt:'2025-12-31'},
-    {nome:'C6 Bank',   ab:138.74,    dt:'2025-12-31'},
-    {nome:'Santander', ab:0.80,      dt:'2025-12-31'},
-    {nome:'Clear',     ab:155.24,    dt:'2025-12-31'},
-    {nome:'Onil',      ab:662719.79, dt:'2025-12-31'},
-    {nome:'Binance',   ab:0,         dt:'2025-12-31'},
-  ]
+  const BANCOS_BASE = bancosDb.map(b => ({nome:b.nome, ab:b.saldo_abertura, dt:b.data_abertura}))
   const MES_FIM = {
     'Dez/25':'2025-12-31','Jan/26':'2026-01-31','Fev/26':'2026-02-28',
     'Mar/26':'2026-03-31','Abr/26':'2026-04-30','Mai/26':'2026-05-31',
@@ -962,7 +963,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase }) {
 // ══════════════════════════════════════════════════════════════
 // TAB ORÇAMENTO — FIX 2: save to DB
 // ══════════════════════════════════════════════════════════════
-function TabOrcamento({ lancs, orcDb, onSaveOrcamento }) {
+function TabOrcamento({ lancs, orcDb, onSaveOrcamento, categoriasDb=[] }) {
   const { toast } = useToast()
   const hoje = new Date().toISOString().slice(0,10)
   const [mesesSel, setMesesSel] = useState([getMesAtualFiltro()])
@@ -973,6 +974,18 @@ function TabOrcamento({ lancs, orcDb, onSaveOrcamento }) {
   const toggleMes=m=>setMesesSel(p=>p.includes(m)?p.filter(x=>x!==m):[...p,m])
   const allMes=()=>setMesesSel([...ALL_MESES])
   const ytdMes=()=>setMesesSel(ALL_MESES.filter(m=>{const[mm,yy]=m.split('/');return`20${yy}-${mm}-01`<=hoje}))
+
+  // Agrupa categorias cadastradas (despesa/investimento) por grupo -> plano de contas do orçamento
+  const ORC_CATEGORIAS = (()=>{
+    const groups = {}
+    categoriasDb.filter(c=>c.tipo!=='receita').forEach(c=>{
+      const key = c.grupo || c.nome
+      if(!groups[key]) groups[key] = {cat:key, planos:[], default:0, tipo:c.tipo}
+      groups[key].planos.push(c.nome)
+      groups[key].default += Number(c.orcamento_default)||0
+    })
+    return Object.values(groups)
+  })()
 
   const orcEffective=ORC_CATEGORIAS.map(cat=>{
     const dbRow=orcDb.find(o=>o.cat===cat.cat)
@@ -1153,4 +1166,192 @@ function TabOrcamento({ lancs, orcDb, onSaveOrcamento }) {
 
 export default function Dashboard() {
   return <ToastProvider><DashboardInner/></ToastProvider>
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB BANCOS — cadastro de contas/bancos
+// ══════════════════════════════════════════════════════════════
+function TabBancos({ bancosDb, reloadCadastros }) {
+  const { toast } = useToast()
+  const [modal, setModal] = useState({open:false, item:null})
+  const [saving, setSaving] = useState(false)
+
+  const DEFAULT = { nome:'', saldo_abertura:'', data_abertura:new Date().toISOString().slice(0,10), classe:'Caixa', cor:'#8B5CF6', ordem:0 }
+  const [form, setForm] = useState(DEFAULT)
+  const set = (k,v) => setForm(f=>({...f,[k]:v}))
+
+  function abrirNovo(){ setForm({...DEFAULT, ordem:bancosDb.length}); setModal({open:true, item:null}) }
+  function abrirEditar(b){ setForm({...b, saldo_abertura:String(b.saldo_abertura)}); setModal({open:true, item:b}) }
+
+  async function salvar(){
+    if(!form.nome) return
+    setSaving(true)
+    try {
+      const payload = {...form, saldo_abertura: parseFloat(String(form.saldo_abertura).replace(',','.'))||0}
+      if(modal.item) { delete payload.id; await editarBanco(modal.item.id, payload); toast(`✓ ${form.nome} atualizado`) }
+      else { await criarBanco(payload); toast(`✓ ${form.nome} cadastrado`) }
+      await reloadCadastros()
+      setModal({open:false, item:null})
+    } catch(e) { toast(e.message,'err') } finally { setSaving(false) }
+  }
+
+  async function remover(b){
+    if(!confirm(`Remover o banco "${b.nome}"?`)) return
+    try { await excluirBanco(b.id); await reloadCadastros(); toast(`Banco removido`) }
+    catch(e){ toast(e.message,'err') }
+  }
+
+  return (
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px'}}>
+        <div style={{fontSize:'18px',fontWeight:700}}>Bancos / Contas</div>
+        <button className="btn btn-p" onClick={abrirNovo}>+ Novo banco</button>
+      </div>
+      <div className="tbl-wrap">
+        <table>
+          <thead><tr><th>Banco</th><th>Classe</th><th style={{textAlign:'right'}}>Saldo inicial</th><th>Abertura</th><th></th></tr></thead>
+          <tbody>
+            {bancosDb.map(b=>(
+              <tr key={b.id}>
+                <td style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <span style={{width:'12px',height:'12px',borderRadius:'50%',background:b.cor,display:'inline-block'}}/>
+                  {b.nome}
+                </td>
+                <td>{b.classe}</td>
+                <td className="td-r">R${fmt(b.saldo_abertura)}</td>
+                <td>{b.data_abertura?.split('-').reverse().join('/')}</td>
+                <td style={{textAlign:'right'}}>
+                  <button className="btn btn-s btn-sm" onClick={()=>abrirEditar(b)}>Editar</button>{' '}
+                  <button className="btn btn-s btn-sm" onClick={()=>remover(b)}>🗑</button>
+                </td>
+              </tr>
+            ))}
+            {bancosDb.length===0 && <tr><td colSpan={5} style={{textAlign:'center',color:'var(--mut)'}}>Nenhum banco cadastrado</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal open={modal.open} onClose={()=>setModal({open:false,item:null})} title={modal.item?'Editar banco':'Novo banco'}>
+        <div className="fld"><label>Nome</label><input value={form.nome} onChange={e=>set('nome',e.target.value)} placeholder="Ex: Itaú"/></div>
+        <div className="fld-row">
+          <div className="fld"><label>Saldo inicial (R$)</label><input type="number" step="0.01" value={form.saldo_abertura} onChange={e=>set('saldo_abertura',e.target.value)}/></div>
+          <div className="fld"><label>Data de abertura</label><input type="date" value={form.data_abertura} onChange={e=>set('data_abertura',e.target.value)}/></div>
+        </div>
+        <div className="fld-row">
+          <div className="fld">
+            <label>Classe</label>
+            <select value={form.classe} onChange={e=>set('classe',e.target.value)}>
+              {['Caixa','Investimento Internacional','Renda Fixa','Cripto'].map(c=><option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="fld"><label>Cor</label><input type="color" value={form.cor} onChange={e=>set('cor',e.target.value)} style={{height:'38px'}}/></div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-s" onClick={()=>setModal({open:false,item:null})}>Cancelar</button>
+          <button className="btn btn-p" onClick={salvar} disabled={saving}>{saving?'Salvando...':'Salvar'}</button>
+        </div>
+      </Modal>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB CATEGORIAS — cadastro de plano de contas
+// ══════════════════════════════════════════════════════════════
+function TabCategorias({ categoriasDb, reloadCadastros }) {
+  const { toast } = useToast()
+  const [modal, setModal] = useState({open:false, item:null})
+  const [saving, setSaving] = useState(false)
+  const [filtroTipo, setFiltroTipo] = useState('')
+
+  const DEFAULT = { nome:'', tipo:'despesa', grupo:'', orcamento_default:'', ordem:0 }
+  const [form, setForm] = useState(DEFAULT)
+  const set = (k,v) => setForm(f=>({...f,[k]:v}))
+
+  const grupos = [...new Set(categoriasDb.map(c=>c.grupo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'))
+  const lista = filtroTipo ? categoriasDb.filter(c=>c.tipo===filtroTipo) : categoriasDb
+
+  function abrirNovo(){ setForm({...DEFAULT, ordem:categoriasDb.length}); setModal({open:true, item:null}) }
+  function abrirEditar(c){ setForm({...c, orcamento_default:String(c.orcamento_default||0)}); setModal({open:true, item:c}) }
+
+  async function salvar(){
+    if(!form.nome) return
+    setSaving(true)
+    try {
+      const payload = {...form, orcamento_default: parseFloat(String(form.orcamento_default).replace(',','.'))||0, grupo: form.grupo||null}
+      if(modal.item) { delete payload.id; await editarCategoria(modal.item.id, payload); toast(`✓ ${form.nome} atualizada`) }
+      else { await criarCategoria(payload); toast(`✓ ${form.nome} cadastrada`) }
+      await reloadCadastros()
+      setModal({open:false, item:null})
+    } catch(e) { toast(e.message,'err') } finally { setSaving(false) }
+  }
+
+  async function remover(c){
+    if(!confirm(`Remover a categoria "${c.nome}"?`)) return
+    try { await excluirCategoria(c.id); await reloadCadastros(); toast(`Categoria removida`) }
+    catch(e){ toast(e.message,'err') }
+  }
+
+  const TIPO_LBL = {receita:'💰 Receita', despesa:'💸 Despesa', investimento:'📈 Investimento'}
+
+  return (
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px',flexWrap:'wrap',gap:'10px'}}>
+        <div style={{fontSize:'18px',fontWeight:700}}>Categorias / Plano de contas</div>
+        <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+          <select value={filtroTipo} onChange={e=>setFiltroTipo(e.target.value)} style={{width:'auto'}}>
+            <option value="">Todos os tipos</option>
+            <option value="receita">Receita</option>
+            <option value="despesa">Despesa</option>
+            <option value="investimento">Investimento</option>
+          </select>
+          <button className="btn btn-p" onClick={abrirNovo}>+ Nova categoria</button>
+        </div>
+      </div>
+      <div className="tbl-wrap">
+        <table>
+          <thead><tr><th>Categoria</th><th>Tipo</th><th>Grupo (orçamento)</th><th style={{textAlign:'right'}}>Orçamento padrão</th><th></th></tr></thead>
+          <tbody>
+            {lista.map(c=>(
+              <tr key={c.id}>
+                <td>{c.nome}</td>
+                <td>{TIPO_LBL[c.tipo]}</td>
+                <td>{c.grupo||'—'}</td>
+                <td className="td-r">{c.orcamento_default>0?`R$${fmt(c.orcamento_default)}`:'—'}</td>
+                <td style={{textAlign:'right'}}>
+                  <button className="btn btn-s btn-sm" onClick={()=>abrirEditar(c)}>Editar</button>{' '}
+                  <button className="btn btn-s btn-sm" onClick={()=>remover(c)}>🗑</button>
+                </td>
+              </tr>
+            ))}
+            {lista.length===0 && <tr><td colSpan={5} style={{textAlign:'center',color:'var(--mut)'}}>Nenhuma categoria cadastrada</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <Modal open={modal.open} onClose={()=>setModal({open:false,item:null})} title={modal.item?'Editar categoria':'Nova categoria'}>
+        <div className="fld"><label>Nome</label><input value={form.nome} onChange={e=>set('nome',e.target.value)} placeholder="Ex: Supermercado"/></div>
+        <div className="fld">
+          <label>Tipo</label>
+          <select value={form.tipo} onChange={e=>set('tipo',e.target.value)}>
+            <option value="receita">Receita</option>
+            <option value="despesa">Despesa</option>
+            <option value="investimento">Investimento</option>
+          </select>
+        </div>
+        <div className="fld-row">
+          <div className="fld">
+            <label>Grupo no orçamento</label>
+            <datalist id="grupo-dl">{grupos.map(g=><option key={g} value={g}/>)}</datalist>
+            <input list="grupo-dl" value={form.grupo||''} onChange={e=>set('grupo',e.target.value)} placeholder="Ex: Lazer (opcional)"/>
+          </div>
+          <div className="fld"><label>Orçamento padrão (R$)</label><input type="number" step="0.01" value={form.orcamento_default} onChange={e=>set('orcamento_default',e.target.value)}/></div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-s" onClick={()=>setModal({open:false,item:null})}>Cancelar</button>
+          <button className="btn btn-p" onClick={salvar} disabled={saving}>{saving?'Salvando...':'Salvar'}</button>
+        </div>
+      </Modal>
+    </div>
+  )
 }

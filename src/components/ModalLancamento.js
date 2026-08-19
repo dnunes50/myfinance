@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import Modal from './Modal'
-import { PLANOS, BANCOS_LISTA, FORNECEDORES, dateToMes, gerarDatasRecorrencia } from '../lib/constantes'
+import { FORNECEDORES, dateToMes, gerarDatasRecorrencia } from '../lib/constantes'
 
 const DEFAULT = {
-  data: '', mes:'', plano: PLANOS[0], tipo:'Receita', banco: BANCOS_LISTA[0],
+  data: '', mes:'', plano: '', tipo: 'Receita', banco: '',
   descricao:'', fornecedor:'', valor:'', status:'A Realizar', fluxo:'Saída'
 }
 
-export default function ModalLancamento({ open, onClose, mode, lanc, onSave, fornHist=[], membros=[], userId='' }) {
+export default function ModalLancamento({ open, onClose, mode, lanc, onSave, fornHist=[], membros=[], userId='', bancosDb=[], categoriasDb=[] }) {
+  const bancosOpts    = bancosDb.length ? bancosDb.map(b=>b.nome) : (lanc?.banco ? [lanc.banco] : [])
+  const categoriasOpts= categoriasDb.length ? categoriasDb.map(c=>c.nome) : (lanc?.plano ? [lanc.plano] : [])
   const [form,    setForm]    = useState({...DEFAULT})
   const [rec,     setRec]     = useState(false)
   const [freq,    setFreq]    = useState('mensal')
@@ -18,7 +20,7 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
 
   useEffect(() => {
     if(!open) return
-    if(mode==='novo') { setForm({...DEFAULT, data: new Date().toISOString().slice(0,10), user_id: userId}); setRec(false) }
+    if(mode==='novo') { setForm({...DEFAULT, plano:categoriasOpts[0]||'', banco:bancosOpts[0]||'', data: new Date().toISOString().slice(0,10), user_id: userId}); setRec(false) }
     else if(lanc) {
       if(mode==='duplicar') {
         const d = new Date(lanc.data+'T00:00:00'); d.setMonth(d.getMonth()+1)
@@ -84,13 +86,13 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
         <div className="fld">
           <label>Plano de Contas</label>
           <select value={form.plano} onChange={e=>set('plano',e.target.value)}>
-            {PLANOS.map(p=><option key={p}>{p}</option>)}
+            {categoriasOpts.map(p=><option key={p}>{p}</option>)}
           </select>
         </div>
         <div className="fld">
           <label>Banco</label>
           <select value={form.banco} onChange={e=>set('banco',e.target.value)}>
-            {BANCOS_LISTA.map(b=><option key={b}>{b}</option>)}
+            {bancosOpts.map(b=><option key={b}>{b}</option>)}
           </select>
         </div>
       </div>
