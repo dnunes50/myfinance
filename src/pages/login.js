@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import { sb } from '../lib/supabase'
 
 export default function Login() {
-  const [email,    setEmail]    = useState('diegoonunes50@gmail.com')
+  const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')

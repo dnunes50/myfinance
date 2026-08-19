@@ -6,7 +6,7 @@ import { ToastProvider, useToast } from '../components/Toast'
 import ModalLancamento from '../components/ModalLancamento'
 import Modal from '../components/Modal'
 import {
-  SALDOS_REF, EVOLUCAO,
+  SALDOS_REF,
   fmt, fmtS, dateToMes, calcUrgencia, getMesAtual
 } from '../lib/constantes'
 
@@ -16,14 +16,24 @@ const getMesAtualFiltro = () => {
   return String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getFullYear()).slice(2)
 }
 
-const MESES_LABEL = {
-  '12/25':'Dez/25','01/26':'Jan/26','02/26':'Fev/26','03/26':'Mar/26','04/26':'Abr/26',
-  '05/26':'Mai/26','06/26':'Jun/26','07/26':'Jul/26','08/26':'Ago/26','09/26':'Set/26',
-  '10/26':'Out/26','11/26':'Nov/26','12/26':'Dez/26','01/27':'Jan/27'
+// Gera dinamicamente o intervalo de meses do app (histórico fixo Dez/25 + ~2 anos pra frente)
+// — evita datas hardcoded em '2026' que quebrariam a virada de ano
+const MES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+const MES_MAP   = Object.fromEntries(MES_ABREV.map((nm,i)=>[nm, String(i+1).padStart(2,'0')]))
+const gerarMesesRange = (qtd=25) => {
+  const out = []
+  const base = new Date(2025,11,1) // Dez/25
+  for(let i=0;i<qtd;i++){
+    const d = new Date(base.getFullYear(), base.getMonth()+i+1, 0) // último dia do mês
+    out.push({ mm: String(d.getMonth()+1).padStart(2,'0'), yy: String(d.getFullYear()).slice(2), nome: MES_ABREV[d.getMonth()], fim: d.toISOString().slice(0,10) })
+  }
+  return out
 }
-const ALL_MESES = ['01/26','02/26','03/26','04/26','05/26','06/26','07/26','08/26','09/26','10/26','11/26','12/26']
-const LAB_MAP   = {'01/26':'Jan','02/26':'Fev','03/26':'Mar','04/26':'Abr','05/26':'Mai','06/26':'Jun','07/26':'Jul','08/26':'Ago','09/26':'Set','10/26':'Out','11/26':'Nov','12/26':'Dez'}
-const MES_MAP   = {Jan:'01',Fev:'02',Mar:'03',Abr:'04',Mai:'05',Jun:'06',Jul:'07',Ago:'08',Set:'09',Out:'10',Nov:'11',Dez:'12'}
+const MESES_RANGE  = gerarMesesRange()
+const MESES_LABEL  = Object.fromEntries(MESES_RANGE.map(m=>[`${m.mm}/${m.yy}`, `${m.nome}/${m.yy}`]))
+const ALL_MESES    = MESES_RANGE.filter(m=>m.yy!=='25').map(m=>`${m.mm}/${m.yy}`) // sem Dez/25 (fora do ciclo anual de orçamento)
+const LAB_MAP       = Object.fromEntries(MESES_RANGE.map(m=>[`${m.mm}/${m.yy}`, m.nome]))
+const MES_FIM_GLOBAL= Object.fromEntries(MESES_RANGE.map(m=>[`${m.nome}/${m.yy}`, m.fim]))
 
 const TABS = [
   {id:'dashboard',   label:'Dashboard',   icon:'📊'},
@@ -43,6 +53,23 @@ function calcBancos(lancs, incluirBase = true, bancosCad = []) {
     const delta = movs.reduce((s,l) => l.fluxo==='Entrada' ? s+l.valor : s-l.valor, 0)
     const valor = (incluirBase ? b.saldo_abertura : 0) + delta
     return { ...b, valor }
+  })
+}
+
+// Evolução patrimonial calculada a partir dos bancos cadastrados + lançamentos reais
+// (única fonte usada no Dashboard e no Patrimônio — antes eram dois cálculos divergentes)
+function calcEvolucaoDinamica(lancs, bancosCad, mostrarBase) {
+  return Object.entries(MES_FIM_GLOBAL).map(([mes, fim]) => {
+    const s = {}
+    bancosCad.forEach(b => {
+      const movs  = lancs.filter(l => l.banco===b.nome && l.status==='Realizado' && l.data>b.data_abertura && l.data<=fim)
+      const aReal = lancs.filter(l => l.banco===b.nome && l.status==='A Realizar' && l.data>b.data_abertura && l.data<=fim)
+      const deltaReal = movs.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
+      const deltaProj = aReal.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
+      s[b.nome] = Math.round(((mostrarBase?b.saldo_abertura:0) + deltaReal + deltaProj)*100)/100
+    })
+    const pat = Math.round(Object.values(s).reduce((t,v)=>t+v,0)*100)/100
+    return { mes, saldos:s, pat }
   })
 }
 
@@ -249,7 +276,7 @@ function DashboardInner() {
 // ══════════════════════════════════════════════════════════════
 // TAB DASHBOARD
 // ══════════════════════════════════════════════════════════════
-function TabDashboard({ lancs, bancos, mostrarBase }) {
+function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[] }) {
   const hoje = new Date().toISOString().slice(0,10)
   const chartsRef = useRef({})
   const [de,  setDe]  = useState(()=>{ const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10) })
@@ -267,8 +294,9 @@ function TabDashboard({ lancs, bancos, mostrarBase }) {
   const aRec = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Entrada'&&l.data>=de&&l.data<=ate).reduce((s,l)=>s+l.valor,0)
   const aSai = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Saída'  &&l.data>=de&&l.data<=ate).reduce((s,l)=>s+l.valor,0)
   const saldoProj  = pat+aRec-aSai
-  const entFimAno  = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Entrada'&&l.data<='2026-12-31').reduce((s,l)=>s+l.valor,0)
-  const saiFimAno  = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Saída'  &&l.data<='2026-12-31').reduce((s,l)=>s+l.valor,0)
+  const fimAnoAtual = `${new Date().getFullYear()}-12-31`
+  const entFimAno  = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Entrada'&&l.data<=fimAnoAtual).reduce((s,l)=>s+l.valor,0)
+  const saiFimAno  = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Saída'  &&l.data<=fimAnoAtual).reduce((s,l)=>s+l.valor,0)
   const patFimAno  = pat+entFimAno-saiFimAno
   const em7  = new Date(); em7.setDate(em7.getDate()+7)
   const nUrg = lancs.filter(l=>l.status==='A Realizar'&&l.data>=hoje&&l.data<=em7.toISOString().slice(0,10)).length
@@ -300,22 +328,23 @@ function TabDashboard({ lancs, bancos, mostrarBase }) {
     return ()=>Object.values(chartsRef.current).forEach(c=>c?.destroy())
   },[])
 
-  useEffect(()=>{ if(window.Chart) renderCharts() },[lancs,bancos,de,ate,mostrarBase])
+  useEffect(()=>{ if(window.Chart) renderCharts() },[lancs,bancos,de,ate,mostrarBase,bancosFiltered])
 
   function renderCharts() {
     const Chart=window.Chart; if(!Chart) return
     const tt={backgroundColor:'#1E2940',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#E8EDF5',bodyColor:'#A8B3C4',padding:10}
     const defaults={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}` }}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8B95A8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8B95A8',font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}}}}
-    // 1. Evolução (histórico estático só existe para o consolidado/Diego)
+    // 1. Evolução (mesmo cálculo dinâmico da aba Patrimônio)
+    const evDinamica = calcEvolucaoDinamica(lancs, bancosFiltered, mostrarBase)
     const evD = mostrarBase ? (() => {
-      const evF=EVOLUCAO.filter(e=>{const[nm,ay]=e.mes.split('/'),d=`20${ay}-${MES_MAP[nm]}-01`;if(de&&d<de.slice(0,7)+'-01')return false;if(ate&&d>ate.slice(0,7)+'-01')return false;return true})
-      return evF.length?evF:EVOLUCAO
+      const evF=evDinamica.filter(e=>{const[nm,ay]=e.mes.split('/'),d=`20${ay}-${MES_MAP[nm]}-01`;if(de&&d<de.slice(0,7)+'-01')return false;if(ate&&d>ate.slice(0,7)+'-01')return false;return true})
+      return evF.length?evF:evDinamica
     })() : []
     chartsRef.current.ev?.destroy()
     const c1=document.getElementById('ch-ev')
     if(c1) chartsRef.current.ev=new Chart(c1,{type:'line',data:{labels:evD.map(e=>e.mes),datasets:[{label:'Patrimônio',data:evD.map(e=>e.pat),borderColor:'#6EE7B7',backgroundColor:'rgba(110,231,183,.08)',borderWidth:2,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#6EE7B7'},{label:'Meta',data:evD.map(()=>1000000),borderColor:'rgba(252,211,77,.35)',borderWidth:1.5,borderDash:[5,4],fill:false,tension:0,pointRadius:0}]},options:{...defaults}})
     // 2. Rec vs Des
-    const mF=ALL_MESES.filter(m=>{const d1=`2026-${m.slice(0,2)}-01`,d2=`2026-${m.slice(0,2)}-31`;if(de&&d2<de)return false;if(ate&&d1>ate)return false;return true})
+    const mF=ALL_MESES.filter(m=>{const[mm,yy]=m.split('/'),d1=`20${yy}-${mm}-01`,d2=`20${yy}-${mm}-31`;if(de&&d2<de)return false;if(ate&&d1>ate)return false;return true})
     chartsRef.current.rd?.destroy()
     const c2=document.getElementById('ch-rd')
     if(c2) chartsRef.current.rd=new Chart(c2,{type:'bar',data:{labels:mF.map(m=>LAB_MAP[m]||m),datasets:[{label:'Receitas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Entrada'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(110,231,183,.7)',borderRadius:4,borderSkipped:false},{label:'Despesas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Saída'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(248,113,113,.7)',borderRadius:4,borderSkipped:false}]},options:{...defaults,plugins:{...defaults.plugins,tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.dataset.label}: R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}`}}}}})
@@ -661,7 +690,7 @@ function TabAlertas({ lancs, onSave, onDelete, membros, userId, bancosDb, catego
         </div>
         <select value={filtro} onChange={e=>setFiltro(e.target.value)} className="fsel">
           <option value="90dias">Próximos 90 dias</option>
-          {Object.entries(MESES_LABEL).filter(([k])=>k>='03/26').map(([v,l])=><option key={v} value={v}>{l}</option>)}
+          {Object.entries(MESES_LABEL).map(([v,l])=><option key={v} value={v}>{l}</option>)}
           <option value="todos">Todos</option>
         </select>
       </div>
@@ -865,27 +894,9 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[] }) {
   const cripto   = bancos.filter(b=>b.classe==='Cripto').reduce((s,b)=>s+b.valor,0)
   const alloc    = [{l:'Caixa',v:caixa,c:'var(--blue)'},{l:'Internacional',v:intl,c:'var(--acc)'},{l:'Cripto',v:cripto,c:'var(--amb)'}].filter(a=>a.v>0)
 
-  // Calcula evolução patrimonial dinamicamente
-  const BANCOS_BASE = bancosFiltered.map(b => ({nome:b.nome, ab:b.saldo_abertura, dt:b.data_abertura}))
-  const MES_FIM = {
-    'Dez/25':'2025-12-31','Jan/26':'2026-01-31','Fev/26':'2026-02-28',
-    'Mar/26':'2026-03-31','Abr/26':'2026-04-30','Mai/26':'2026-05-31',
-    'Jun/26':'2026-06-30','Jul/26':'2026-07-31','Ago/26':'2026-08-31',
-    'Set/26':'2026-09-30','Out/26':'2026-10-31','Nov/26':'2026-11-30',
-    'Dez/26':'2026-12-31',
-  }
-  const evolucaoDinamica = Object.entries(MES_FIM).map(([mes, fim]) => {
-    const s = {}
-    BANCOS_BASE.forEach(b => {
-      const movs  = lancs.filter(l => l.banco===b.nome && l.status==='Realizado' && l.data>b.dt && l.data<=fim)
-      const aReal = lancs.filter(l => l.banco===b.nome && l.status==='A Realizar' && l.data>b.dt && l.data<=fim)
-      const deltaReal = movs.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
-      const deltaProj = aReal.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
-      s[b.nome] = Math.round(((mostrarBase?b.ab:0) + deltaReal + deltaProj)*100)/100
-    })
-    const pat = Math.round(Object.values(s).reduce((t,v)=>t+v,0)*100)/100
-    return { mes, saldos:s, pat }
-  })
+  // Evolução patrimonial (mesmo cálculo usado no Dashboard)
+  const BANCOS_BASE = bancosFiltered
+  const evolucaoDinamica = calcEvolucaoDinamica(lancs, bancosFiltered, true)
 
   return(
     <div>
