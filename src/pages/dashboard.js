@@ -1500,15 +1500,17 @@ function TabReclassificar({ lancs, categoriasDb=[], reloadCadastros }) {
       <p style={{fontSize:'12px',color:'var(--mut)',marginBottom:'16px'}}>Escolha o grupo de cada plano — aplica em todos os lançamentos com esse plano de uma vez.</p>
       <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
         {planos.map(p=>(
-          <div key={p.plano} style={{display:'flex',alignItems:'center',gap:'12px',background:'var(--sur)',border:'1px solid var(--brd)',borderRadius:'var(--rs)',padding:'12px 16px'}}>
+          <div key={p.plano} className="reclass-row">
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontWeight:600,fontSize:'13px'}}>{p.plano}</div>
               <div style={{fontSize:'11px',color:'var(--mut)'}}>{p.n} lançamento(s) · grupo atual: {p.grupoAtual||'—'}</div>
             </div>
-            <input list="grupo-dl-reclass" style={{width:'220px'}} value={pend[p.plano] ?? p.grupoAtual ?? ''} onChange={e=>setPend(f=>({...f,[p.plano]:e.target.value}))} placeholder="Ex: Moradia"/>
-            <button className="btn btn-p btn-sm" disabled={saving===p.plano || !(pend[p.plano]||'').trim()} onClick={()=>aplicar(p.plano)}>
-              {saving===p.plano ? '...' : 'Aplicar'}
-            </button>
+            <div className="reclass-row-input">
+              <input list="grupo-dl-reclass" value={pend[p.plano] ?? p.grupoAtual ?? ''} onChange={e=>setPend(f=>({...f,[p.plano]:e.target.value}))} placeholder="Ex: Moradia"/>
+              <button className="btn btn-p btn-sm" disabled={saving===p.plano || !(pend[p.plano]||'').trim()} onClick={()=>aplicar(p.plano)}>
+                {saving===p.plano ? '...' : 'Aplicar'}
+              </button>
+            </div>
           </div>
         ))}
       </div>
