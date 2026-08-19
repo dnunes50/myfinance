@@ -48,6 +48,37 @@ const TABS = [
 ]
 const MOB_PRIMARY = ['dashboard','lancamentos','alertas'] // abas fixas no mobile; o resto vai no menu "Mais"
 
+// Dropdown de múltipla seleção (grupos, bancos, etc.)
+function MultiSelect({ label, options, value, onChange, allLabel='Todos' }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    const h = e => { if(ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [])
+  const toggle = v => onChange(value.includes(v) ? value.filter(x=>x!==v) : [...value, v])
+  const texto = value.length===0 ? allLabel : value.length===1 ? value[0] : `${value.length} selecionados`
+  return (
+    <div ref={ref} style={{position:'relative'}}>
+      <button type="button" className="fsel" onClick={()=>setOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer'}}>
+        {label}: {texto} <span style={{fontSize:'10px',color:'var(--mut)'}}>▾</span>
+      </button>
+      {open && (
+        <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,zIndex:60,background:'var(--bg2)',border:'1px solid var(--brd2)',borderRadius:'var(--rs)',padding:'8px',minWidth:'200px',maxHeight:'260px',overflowY:'auto',boxShadow:'0 8px 24px rgba(0,0,0,.4)'}}>
+          {value.length>0 && <button className="btn btn-s btn-sm" style={{width:'100%',marginBottom:'6px'}} onClick={()=>onChange([])}>Limpar seleção</button>}
+          {options.map(o=>(
+            <label key={o} style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 4px',fontSize:'12px',cursor:'pointer'}}>
+              <input type="checkbox" checked={value.includes(o)} onChange={()=>toggle(o)}/>
+              {o}
+            </label>
+          ))}
+          {options.length===0 && <div style={{fontSize:'11px',color:'var(--mut)',padding:'6px 4px'}}>Nenhuma opção</div>}
+        </div>
+      )}
+    </div>
+  )
+}
 function calcBancos(lancs, incluirBase = true, bancosCad = []) {
   return bancosCad.map(b => {
     const movs  = lancs.filter(l => l.banco===b.nome && l.status==='Realizado' && l.data>b.data_abertura)
@@ -98,7 +129,8 @@ function DashboardInner() {
   const [filtroMes,    setFiltroMes]    = useState(getMesAtualFiltro())
   const [filtroTipo,   setFiltroTipo]   = useState('')
   const [filtroStatus, setFiltroStatus] = useState('')
-  const [filtroBanco,  setFiltroBanco]  = useState('')
+  const [filtroBanco,  setFiltroBanco]  = useState([])
+  const [filtroGrupos, setFiltroGrupos] = useState([])
   const [busca,        setBusca]        = useState('')
   // FIX 9: highlight edited row
   const [flashId, setFlashId] = useState(null)
@@ -207,7 +239,7 @@ function DashboardInner() {
     onSave:handleSave, onDelete:handleDelete,
     // FIX 10: shared filters
     filtroMes, setFiltroMes, filtroTipo, setFiltroTipo,
-    filtroStatus, setFiltroStatus, filtroBanco, setFiltroBanco,
+    filtroStatus, setFiltroStatus, filtroBanco, setFiltroBanco, filtroGrupos, setFiltroGrupos,
     busca, setBusca,
     // FIX 2: orcamento save
     onSaveOrcamento: async (cats) => {
@@ -315,7 +347,7 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
   const hoje = new Date().toISOString().slice(0,10)
   const chartsRef = useRef({})
   const [de,  setDe]  = useState(()=>{ const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10) })
-  const [ate, setAte] = useState(()=>{ const d=new Date(); d.setMonth(d.getMonth()+1); d.setDate(0); return d.toISOString().slice(0,10) })
+  const [ate, setAte] = useState(()=>{ const d=new Date(); return `${d.getFullYear()}-12-31` })
 
   const pat  = bancos.reduce((s,b)=>s+b.valor,0)
   const meta = metaTotal
@@ -640,7 +672,7 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
 // ══════════════════════════════════════════════════════════════
 // TAB LANÇAMENTOS — FIX 7 (sort), FIX 8 (search global), FIX 9 (flash), FIX 10 (persist filters)
 // ══════════════════════════════════════════════════════════════
-function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes, setFiltroMes, filtroTipo, setFiltroTipo, filtroStatus, setFiltroStatus, filtroBanco, setFiltroBanco, busca, setBusca, membros, userId, bancosDb, categoriasDb }) {
+function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes, setFiltroMes, filtroTipo, setFiltroTipo, filtroStatus, setFiltroStatus, filtroBanco, setFiltroBanco, filtroGrupos, setFiltroGrupos, busca, setBusca, membros, userId, bancosDb, categoriasDb }) {
   const [modal,   setModal]   = useState({open:false,mode:'novo',lanc:null})
   // FIX 7: sortable columns
   const [sortCol, setSortCol] = useState('data')
@@ -653,7 +685,8 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
     if(filtroMes    && l.mes!==filtroMes)       return false
     if(filtroTipo   && l.fluxo!==filtroTipo)    return false
     if(filtroStatus && l.status!==filtroStatus) return false
-    if(filtroBanco  && l.banco!==filtroBanco)   return false
+    if(filtroBanco.length  && !filtroBanco.includes(l.banco))  return false
+    if(filtroGrupos.length && !filtroGrupos.includes(l.grupo||'Sem grupo')) return false
     if(busca){
       const b=busca.toLowerCase()
       if(!l.descricao?.toLowerCase().includes(b)&&!l.plano?.toLowerCase().includes(b)&&!l.fornecedor?.toLowerCase().includes(b)) return false
@@ -733,10 +766,8 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
           <option value="Realizado">Realizado</option>
           <option value="A Realizar">A Realizar</option>
         </select>
-        <select value={filtroBanco} onChange={e=>setFiltroBanco(e.target.value)} className="fsel">
-          <option value="">Todos os bancos</option>
-          {bancosUsados.map(b=><option key={b}>{b}</option>)}
-        </select>
+        <MultiSelect label="Bancos" allLabel="Todos os bancos" options={bancosUsados} value={filtroBanco} onChange={setFiltroBanco}/>
+        <MultiSelect label="Grupos" allLabel="Todos os grupos" options={gruposUsados} value={filtroGrupos} onChange={setFiltroGrupos}/>
         {/* FIX 8: global search */}
         <input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="🔍 Buscar em todos os meses..." className="fsel" style={{minWidth:'220px'}}/>
       </div>
