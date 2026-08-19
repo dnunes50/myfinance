@@ -565,7 +565,7 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
                 <td className="hide-mob" style={{fontSize:'11px',color:'var(--txt2)'}}>{l.plano}</td>
                 <td className="hide-mob" style={{minWidth:'150px'}}>
                   <input list="grupo-dl-inline" defaultValue={l.grupo||''} placeholder="—"
-                    style={{fontSize:'11px',padding:'4px 8px',background:'var(--bg)',border:'1px solid var(--brd)',borderRadius:'6px',width:'100%'}}
+                    style={{fontSize:'11px',padding:'4px 8px',background:'var(--bg)',border:'1px solid var(--brd)',borderRadius:'6px',width:'100%',color:'var(--txt)'}}
                     onBlur={e=>{ const v=e.target.value.trim(); if(v!==(l.grupo||'')) onSave([{grupo:v||null}], l.id) }}
                     onKeyDown={e=>{ if(e.key==='Enter') e.target.blur() }}
                   />
