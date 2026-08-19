@@ -443,6 +443,7 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
   const [sortDir, setSortDir] = useState('desc')
 
   const bancosUsados = [...new Set(lancs.map(l=>l.banco))]
+  const gruposUsados = [...new Set([...(categoriasDb||[]).map(c=>c.grupo), ...lancs.map(l=>l.grupo)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'))
 
   const filtered = lancs.filter(l=>{
     if(filtroMes    && l.mes!==filtroMes)       return false
@@ -536,6 +537,7 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
         <input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="🔍 Buscar em todos os meses..." className="fsel" style={{minWidth:'220px'}}/>
       </div>
 
+      <datalist id="grupo-dl-inline">{gruposUsados.map(g=><option key={g} value={g}/>)}</datalist>
       <div className="tbl-wrap">
         <table>
           <thead>
@@ -561,7 +563,13 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
                 <td style={{maxWidth:'160px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={l.descricao}>{l.descricao}</td>
                 <td className="hide-mob" style={{fontSize:'11px',color:'var(--txt2)',maxWidth:'120px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.fornecedor||'—'}</td>
                 <td className="hide-mob" style={{fontSize:'11px',color:'var(--txt2)'}}>{l.plano}</td>
-                <td className="hide-mob" style={{fontSize:'11px',color:'var(--txt2)'}}>{l.grupo||'—'}</td>
+                <td className="hide-mob" style={{minWidth:'150px'}}>
+                  <input list="grupo-dl-inline" defaultValue={l.grupo||''} placeholder="—"
+                    style={{fontSize:'11px',padding:'4px 8px',background:'var(--bg)',border:'1px solid var(--brd)',borderRadius:'6px',width:'100%'}}
+                    onBlur={e=>{ const v=e.target.value.trim(); if(v!==(l.grupo||'')) onSave([{grupo:v||null}], l.id) }}
+                    onKeyDown={e=>{ if(e.key==='Enter') e.target.blur() }}
+                  />
+                </td>
                 <td className="hide-mob">{l.banco}</td>
                 <td><span className={`bdg ${l.status==='Realizado'?'bdg-real':'bdg-pend'}`}>{l.status}</span></td>
                 <td><span className={`bdg ${l.fluxo==='Entrada'?'bdg-rec':'bdg-des'}`}>{l.fluxo}</span></td>
