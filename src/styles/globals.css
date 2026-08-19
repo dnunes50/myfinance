@@ -168,3 +168,14 @@ tr:hover td{background:rgba(255,255,255,.02)}
 /* Sortable header */
 .th-sort{cursor:pointer;user-select:none}
 .th-sort:hover{color:var(--txt)}
+
+/* Cadastro em cards (Bancos/Categorias) — mobile only */
+.cad-cards{display:none}
+.cad-card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--rs);padding:14px;margin-bottom:10px}
+.cad-card-head{display:flex;align-items:center;gap:8px}
+.cad-card-title{font-weight:700;font-size:14px}
+.cad-card-meta{font-size:11px;color:var(--mut);margin:6px 0 10px}
+.cad-card-actions{display:flex;gap:8px}
+@media(max-width:768px){
+  .cad-cards{display:block}
+}

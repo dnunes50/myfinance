@@ -1265,7 +1265,7 @@ function TabBancos({ bancosDb, reloadCadastros, membros=[], userId }) {
         <div style={{fontSize:'18px',fontWeight:700}}>Bancos / Contas</div>
         <button className="btn btn-p" onClick={abrirNovo}>+ Novo banco</button>
       </div>
-      <div className="tbl-wrap">
+      <div className="tbl-wrap hide-mob">
         <table>
           <thead><tr><th>Banco</th><th>Usuário</th><th>Classe</th><th style={{textAlign:'right'}}>Saldo inicial</th><th>Abertura</th><th></th></tr></thead>
           <tbody>
@@ -1288,6 +1288,25 @@ function TabBancos({ bancosDb, reloadCadastros, membros=[], userId }) {
             {bancosDb.length===0 && <tr><td colSpan={6} style={{textAlign:'center',color:'var(--mut)'}}>Nenhum banco cadastrado</td></tr>}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards — mobile */}
+      <div className="cad-cards">
+        {bancosDb.length===0 && <div className="empty"><p>Nenhum banco cadastrado</p></div>}
+        {bancosDb.map(b=>(
+          <div key={b.id} className="cad-card">
+            <div className="cad-card-head">
+              <span style={{width:'12px',height:'12px',borderRadius:'50%',background:b.cor,display:'inline-block',flexShrink:0}}/>
+              <span className="cad-card-title">{b.nome}</span>
+              <span className="td-r" style={{marginLeft:'auto'}}>R${fmt(b.saldo_abertura)}</span>
+            </div>
+            <div className="cad-card-meta">{nomeMembro(b.user_id)} · {b.classe} · abertura {b.data_abertura?.split('-').reverse().join('/')}</div>
+            <div className="cad-card-actions">
+              <button className="btn btn-s btn-sm" onClick={()=>abrirEditar(b)}>Editar</button>
+              <button className="btn btn-s btn-sm" onClick={()=>remover(b)}>🗑 Remover</button>
+            </div>
+          </div>
+        ))}
       </div>
 
       <Modal open={modal.open} onClose={()=>setModal({open:false,item:null})} title={modal.item?'Editar banco':'Novo banco'}>
@@ -1374,7 +1393,7 @@ function TabCategorias({ categoriasDb, reloadCadastros }) {
           <button className="btn btn-p" onClick={abrirNovo}>+ Nova categoria</button>
         </div>
       </div>
-      <div className="tbl-wrap">
+      <div className="tbl-wrap hide-mob">
         <table>
           <thead><tr><th>Categoria</th><th>Tipo</th><th>Grupo (orçamento)</th><th style={{textAlign:'right'}}>Orçamento padrão</th><th></th></tr></thead>
           <tbody>
@@ -1393,6 +1412,24 @@ function TabCategorias({ categoriasDb, reloadCadastros }) {
             {lista.length===0 && <tr><td colSpan={5} style={{textAlign:'center',color:'var(--mut)'}}>Nenhuma categoria cadastrada</td></tr>}
           </tbody>
         </table>
+      </div>
+
+      {/* Cards — mobile */}
+      <div className="cad-cards">
+        {lista.length===0 && <div className="empty"><p>Nenhuma categoria cadastrada</p></div>}
+        {lista.map(c=>(
+          <div key={c.id} className="cad-card">
+            <div className="cad-card-head">
+              <span className="cad-card-title">{c.nome}</span>
+              <span className="td-r" style={{marginLeft:'auto'}}>{c.orcamento_default>0?`R$${fmt(c.orcamento_default)}`:'—'}</span>
+            </div>
+            <div className="cad-card-meta">{TIPO_LBL[c.tipo]} · {c.grupo||'sem grupo'}</div>
+            <div className="cad-card-actions">
+              <button className="btn btn-s btn-sm" onClick={()=>abrirEditar(c)}>Editar</button>
+              <button className="btn btn-s btn-sm" onClick={()=>remover(c)}>🗑 Remover</button>
+            </div>
+          </div>
+        ))}
       </div>
 
       <Modal open={modal.open} onClose={()=>setModal({open:false,item:null})} title={modal.item?'Editar categoria':'Nova categoria'}>
