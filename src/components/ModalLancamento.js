@@ -10,6 +10,7 @@ const DEFAULT = {
 export default function ModalLancamento({ open, onClose, mode, lanc, onSave, fornHist=[], membros=[], userId='', bancosDb=[], categoriasDb=[] }) {
   const bancosOpts    = bancosDb.length ? bancosDb.map(b=>b.nome) : (lanc?.banco ? [lanc.banco] : [])
   const categoriasOpts= categoriasDb.length ? categoriasDb.map(c=>c.nome) : (lanc?.plano ? [lanc.plano] : [])
+  const gruposOpts    = [...new Set(categoriasDb.map(c=>c.grupo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'))
   const [form,    setForm]    = useState({...DEFAULT})
   const [rec,     setRec]     = useState(false)
   const [freq,    setFreq]    = useState('mensal')
@@ -101,6 +102,13 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
             {categoriasOpts.map(p=><option key={p}>{p}</option>)}
           </select>
         </div>
+        <div className="fld">
+          <label>Grupo</label>
+          <input list="grupo-dl-modal" value={form.grupo||''} onChange={e=>set('grupo',e.target.value)} placeholder="Ex: Moradia"/>
+          <datalist id="grupo-dl-modal">{gruposOpts.map(g=><option key={g} value={g}/>)}</datalist>
+        </div>
+      </div>
+      <div className="fld-row">
         <div className="fld">
           <label>Banco</label>
           <select value={form.banco} onChange={e=>set('banco',e.target.value)}>
