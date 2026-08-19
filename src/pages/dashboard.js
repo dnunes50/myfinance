@@ -597,7 +597,7 @@ function TabAlertas({ lancs, onSave, onDelete, membros, userId }) {
 
   // FIX 4: mark as realizado directly
   async function marcarRealizado(l) {
-    await onSave([{...l, status:'Realizado', id:undefined, created_at:undefined}], l.id)
+    await onSave([{...l, status:'Realizado', id:undefined, created_at:undefined, urg:undefined}], l.id)
     toast(`✓ ${l.descricao} marcado como Realizado`)
   }
 
