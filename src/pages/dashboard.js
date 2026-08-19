@@ -235,7 +235,7 @@ function DashboardInner() {
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
           {membros.length>0 && (
-            <div style={{display:'flex',gap:'4px',background:'var(--sur2)',padding:'3px',borderRadius:'8px'}}>
+            <div className="hide-mob" style={{display:'flex',gap:'4px',background:'var(--sur2)',padding:'3px',borderRadius:'8px'}}>
               <button className={`tab${filtroUser===''?' on':''}`} style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setFiltroUser('')}>Consolidado</button>
               {membros.map(m=>(
                 <button key={m.id} className={`tab${filtroUser===m.id?' on':''}`} style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setFiltroUser(m.id)}>{m.nome}</button>
@@ -258,6 +258,16 @@ function DashboardInner() {
           ))}
         </div>
       </div>
+
+      {/* Toggle Consolidado/Individual — mobile (abaixo da nav, linha própria) */}
+      {membros.length>0 && (
+        <div className="mob-user-toggle">
+          <button className={`tab${filtroUser===''?' on':''}`} onClick={()=>setFiltroUser('')}>Consolidado</button>
+          {membros.map(m=>(
+            <button key={m.id} className={`tab${filtroUser===m.id?' on':''}`} onClick={()=>setFiltroUser(m.id)}>{m.nome}</button>
+          ))}
+        </div>
+      )}
 
       <div className="page-pad" style={{padding:'20px',maxWidth:'1400px',margin:'0 auto'}}>
         {tab==='dashboard'   && <TabDashboard   {...shared}/>}
@@ -695,7 +705,7 @@ function TabAlertas({ lancs, onSave, onDelete, membros, userId, bancosDb, catego
           <option value="todos">Todos</option>
         </select>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px'}}>
+      <div className="grid-2col" style={{gap:'20px'}}>
         <div><div className="sec-title">A pagar</div>{renderList(pagar,'var(--red)')}</div>
         <div><div className="sec-title">A receber</div>{renderList(receber,'var(--acc)')}</div>
       </div>
@@ -924,7 +934,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[], metaTota
         </div>
         <div className="prog"><div className="prog-fill" style={{width:`${pct}%`}}/></div>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'20px',marginBottom:'24px'}}>
+      <div className="grid-2col" style={{gap:'20px',marginBottom:'24px'}}>
         <div>
           <div className="sec-title">Saldo por banco</div>
           {bancos.map(b=>(

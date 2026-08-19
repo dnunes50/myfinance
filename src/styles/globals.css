@@ -122,7 +122,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
 /* Responsive */
 @media(max-width:768px){
-  .chart-grid,.fld-row{grid-template-columns:1fr}
+  .chart-grid,.fld-row,.grid-2col{grid-template-columns:1fr}
   .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
   .kpi-val{font-size:16px}
   .hide-mob{display:none!important}
@@ -131,8 +131,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
 /* Mobile bottom nav */
 .mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg2);border-top:1px solid var(--brd);padding:4px 0 env(safe-area-inset-bottom,0)}
-.mob-nav-items{display:flex;justify-content:space-around}
-.mob-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;background:none;border:none;color:var(--mut);font-family:'Sora',sans-serif;font-size:9px;font-weight:500;cursor:pointer;min-width:52px}
+.mob-nav-items{display:flex;justify-content:flex-start;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mob-nav-items::-webkit-scrollbar{display:none}
+.mob-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 10px;background:none;border:none;color:var(--mut);font-family:'Sora',sans-serif;font-size:9px;font-weight:500;cursor:pointer;min-width:56px;flex-shrink:0}
 .mob-item.on{color:var(--acc)}
 .mob-item-icon{font-size:18px}
 .page-pad{padding-bottom:0}
@@ -140,6 +141,15 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .mob-nav{display:block}
   .page-pad{padding-bottom:70px}
   .nav-right span{display:none}
+}
+
+/* Mobile user toggle (Consolidado/Diego/Bianca) — abaixo da nav superior */
+.mob-user-toggle{display:none;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:8px 12px;background:var(--bg2);border-bottom:1px solid var(--brd);position:sticky;top:52px;z-index:150}
+.mob-user-toggle::-webkit-scrollbar{display:none}
+.mob-user-toggle .tab{flex-shrink:0;padding:5px 12px;background:var(--sur);border:1px solid var(--brd2)}
+.mob-user-toggle .tab.on{background:var(--acc-d);color:var(--acc);border-color:rgba(110,231,183,.3)}
+@media(max-width:768px){
+  .mob-user-toggle{display:flex}
 }
 
 /* Row highlight animation */
