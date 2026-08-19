@@ -135,7 +135,9 @@ function DashboardInner() {
   }
 
   const lancsView = filtroUser ? lancs.filter(l => l.user_id === filtroUser) : lancs
-  const bancos    = calcBancos(lancsView, !filtroUser) // base inicial só entra no consolidado
+  const DIEGO_ID  = 'bb059b55-b4e5-4b3c-8f2b-78183f3118c2'
+  const mostrarBase = !filtroUser || filtroUser === DIEGO_ID // dados históricos estáticos só valem p/ consolidado ou Diego
+  const bancos    = calcBancos(lancsView, mostrarBase)
   const fornHist  = [...new Set(lancsView.map(l=>l.fornecedor).filter(Boolean))]
 
   if(loading) return (
@@ -162,7 +164,7 @@ function DashboardInner() {
   )
 
   const shared = {
-    lancs: lancsView, bancos, orcDb, fornHist, flashId,
+    lancs: lancsView, bancos, orcDb, fornHist, flashId, mostrarBase,
     onSave:handleSave, onDelete:handleDelete,
     // FIX 10: shared filters
     filtroMes, setFiltroMes, filtroTipo, setFiltroTipo,
@@ -235,7 +237,7 @@ function DashboardInner() {
 // ══════════════════════════════════════════════════════════════
 // TAB DASHBOARD
 // ══════════════════════════════════════════════════════════════
-function TabDashboard({ lancs, bancos }) {
+function TabDashboard({ lancs, bancos, mostrarBase }) {
   const hoje = new Date().toISOString().slice(0,10)
   const chartsRef = useRef({})
   const [de,  setDe]  = useState(()=>{ const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10) })
@@ -268,7 +270,7 @@ function TabDashboard({ lancs, bancos }) {
     const last = keys[keys.length-1]
     return last ? SALDOS_REF[last].total : null
   }
-  const saldoIni = getSaldoRefTotal(diaAnt)
+  const saldoIni = mostrarBase ? getSaldoRefTotal(diaAnt) : 0
 
   function setRange(tipo) {
     const n=new Date()
@@ -286,15 +288,17 @@ function TabDashboard({ lancs, bancos }) {
     return ()=>Object.values(chartsRef.current).forEach(c=>c?.destroy())
   },[])
 
-  useEffect(()=>{ if(window.Chart) renderCharts() },[lancs,bancos,de,ate])
+  useEffect(()=>{ if(window.Chart) renderCharts() },[lancs,bancos,de,ate,mostrarBase])
 
   function renderCharts() {
     const Chart=window.Chart; if(!Chart) return
     const tt={backgroundColor:'#1E2940',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#E8EDF5',bodyColor:'#A8B3C4',padding:10}
     const defaults={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}` }}},scales:{x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8B95A8',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8B95A8',font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}}}}
-    // 1. Evolução
-    const evF=EVOLUCAO.filter(e=>{const[nm,ay]=e.mes.split('/'),d=`20${ay}-${MES_MAP[nm]}-01`;if(de&&d<de.slice(0,7)+'-01')return false;if(ate&&d>ate.slice(0,7)+'-01')return false;return true})
-    const evD=evF.length?evF:EVOLUCAO
+    // 1. Evolução (histórico estático só existe para o consolidado/Diego)
+    const evD = mostrarBase ? (() => {
+      const evF=EVOLUCAO.filter(e=>{const[nm,ay]=e.mes.split('/'),d=`20${ay}-${MES_MAP[nm]}-01`;if(de&&d<de.slice(0,7)+'-01')return false;if(ate&&d>ate.slice(0,7)+'-01')return false;return true})
+      return evF.length?evF:EVOLUCAO
+    })() : []
     chartsRef.current.ev?.destroy()
     const c1=document.getElementById('ch-ev')
     if(c1) chartsRef.current.ev=new Chart(c1,{type:'line',data:{labels:evD.map(e=>e.mes),datasets:[{label:'Patrimônio',data:evD.map(e=>e.pat),borderColor:'#6EE7B7',backgroundColor:'rgba(110,231,183,.08)',borderWidth:2,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#6EE7B7'},{label:'Meta',data:evD.map(()=>1000000),borderColor:'rgba(252,211,77,.35)',borderWidth:1.5,borderDash:[5,4],fill:false,tension:0,pointRadius:0}]},options:{...defaults}})
@@ -651,7 +655,7 @@ function TabAlertas({ lancs, onSave, onDelete }) {
 // ══════════════════════════════════════════════════════════════
 // TAB FLUXO — FIX 8: monthly summary
 // ══════════════════════════════════════════════════════════════
-function TabFluxo({ lancs }) {
+function TabFluxo({ lancs, mostrarBase }) {
   const hoje = new Date().toISOString().slice(0,10)
   const ULTIMA_REF = Object.keys(SALDOS_REF).sort().pop()
   const BANCO_CAMPO = {'C6 Bank':'c6','Nubank':'nubank','Onil':'onil','Santander':'san','Clear':'clear','Binance':'bin'}
@@ -660,6 +664,7 @@ function TabFluxo({ lancs }) {
   const [ateStr,setAteStr]= useState(hoje)
 
   function getSaldoRef(d){
+    if(!mostrarBase) return null
     const ref=SALDOS_REF[d]; if(!ref) return null
     if(!banco) return ref.total
     const c=BANCO_CAMPO[banco]; return c!=null?ref[c]:null
@@ -685,7 +690,7 @@ function TabFluxo({ lancs }) {
     const refAnt=getSaldoRef(diaAntStr)
     if(refAnt!==null){saldoAcum=refAnt}
     else{
-      const rds=Object.keys(SALDOS_REF).filter(d=>d<deStr).sort()
+      const rds=mostrarBase?Object.keys(SALDOS_REF).filter(d=>d<deStr).sort():[]
       if(rds.length){const ur=rds[rds.length-1];saldoAcum=getSaldoRef(ur)??0;lancFiltro.filter(l=>l.status==='Realizado'&&l.data>ur&&l.data<deStr).forEach(l=>{saldoAcum+=l.fluxo==='Entrada'?l.valor:-l.valor})}
     }
     const byDate={};dias.forEach(d=>{byDate[d]={ent:[],sai:[]}})
@@ -826,11 +831,11 @@ function TabFluxo({ lancs }) {
 // ══════════════════════════════════════════════════════════════
 // TAB PATRIMÔNIO — calcula evolução dinamicamente dos lançamentos
 // ══════════════════════════════════════════════════════════════
-function TabPatrimonio({ bancos, lancs }) {
+function TabPatrimonio({ bancos, lancs, mostrarBase }) {
   const mesAtual = getMesAtual()
 
   const pat      = bancos.reduce((s,b)=>s+b.valor,0)
-  const saldoIni = 382436.07
+  const saldoIni = mostrarBase ? 382436.07 : 0
   const varPat   = pat-saldoIni
   const pct      = Math.min(100,pat/1000000*100)
   const caixa    = bancos.filter(b=>['C6 Bank','Nubank','Santander','Clear'].includes(b.nome)).reduce((s,b)=>s+b.valor,0)
@@ -861,7 +866,7 @@ function TabPatrimonio({ bancos, lancs }) {
       const aReal = lancs.filter(l => l.banco===b.nome && l.status==='A Realizar' && l.data>b.dt && l.data<=fim)
       const deltaReal = movs.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
       const deltaProj = aReal.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
-      s[b.nome] = Math.round((b.ab + deltaReal + deltaProj)*100)/100
+      s[b.nome] = Math.round(((mostrarBase?b.ab:0) + deltaReal + deltaProj)*100)/100
     })
     const pat = Math.round(Object.values(s).reduce((t,v)=>t+v,0)*100)/100
     return { mes, nubank:s['Nubank'], c6:s['C6 Bank'], san:s['Santander'], clear:s['Clear'], bin:s['Binance'], onil:s['Onil'], pat }
@@ -873,7 +878,7 @@ function TabPatrimonio({ bancos, lancs }) {
         {[
           {lbl:'Saldo inicial (31/12/25)',val:`R$${fmt(saldoIni)}`,sub:'Abertura do período',color:'var(--mut)'},
           {lbl:'Patrimônio Atual',val:fmtS(pat),sub:`↑ ${pct.toFixed(1)}% da meta`,color:'var(--acc)',sub2:'up'},
-          {lbl:'Variação desde abertura',val:`${varPat>=0?'+':''}R$${fmt(varPat)}`,sub:`${((varPat/saldoIni)*100).toFixed(1)}%`,color:varPat>=0?'var(--acc)':'var(--red)',sub2:varPat>=0?'up':'dn'},
+          {lbl:'Variação desde abertura',val:`${varPat>=0?'+':''}R$${fmt(varPat)}`,sub:saldoIni?`${((varPat/saldoIni)*100).toFixed(1)}%`:'',color:varPat>=0?'var(--acc)':'var(--red)',sub2:varPat>=0?'up':'dn'},
           {lbl:'Caixa total',val:fmtS(caixa),sub:`${pat>0?(caixa/pat*100).toFixed(1):0}% do patrimônio`,color:'var(--blue)'},
           {lbl:'Investim. Internacional',val:fmtS(intl),sub:`${pat>0?(intl/pat*100).toFixed(1):0}% do patrimônio`,color:'#A78BFA'},
           {lbl:'Falta para R$ 1M',val:fmtS(1000000-pat),sub:'Meta: dez/2026',color:'var(--amb)',sub2:'warn'},
