@@ -46,6 +46,7 @@ const TABS = [
   {id:'categorias',  label:'Categorias',  icon:'🏷️'},
   {id:'reclassificar',label:'Reclassificar',icon:'🔄'},
 ]
+const MOB_PRIMARY = ['dashboard','lancamentos','alertas'] // abas fixas no mobile; o resto vai no menu "Mais"
 
 function calcBancos(lancs, incluirBase = true, bancosCad = []) {
   return bancosCad.map(b => {
@@ -80,6 +81,7 @@ function DashboardInner() {
   const router = useRouter()
   const { toast } = useToast()
   const [tab,       setTab]       = useState('dashboard')
+  const [maisOpen,  setMaisOpen]  = useState(false)
   const [lancs,     setLancs]     = useState([])
   const [orcDb,     setOrcDb]     = useState([])
   const [loading,   setLoading]   = useState(true)
@@ -247,25 +249,47 @@ function DashboardInner() {
         </div>
       </nav>
 
-      {/* FIX 5: Mobile bottom nav */}
+      {/* Mobile bottom nav — 3 fixas + menu "Mais" pro resto */}
       <div className="mob-nav">
         <div className="mob-nav-items">
-          {TABS.map(t=>(
-            <button key={t.id} className={`mob-item${tab===t.id?' on':''}`} onClick={()=>setTab(t.id)}>
+          {TABS.filter(t=>MOB_PRIMARY.includes(t.id)).map(t=>(
+            <button key={t.id} className={`mob-item${tab===t.id?' on':''}`} onClick={()=>{setTab(t.id); setMaisOpen(false)}}>
               <span className="mob-item-icon">{t.icon}</span>
               {t.label.split(' ')[0]}
             </button>
           ))}
+          <button className={`mob-item${!MOB_PRIMARY.includes(tab)?' on':''}`} onClick={()=>setMaisOpen(true)}>
+            <span className="mob-item-icon">☰</span>
+            Mais
+          </button>
         </div>
       </div>
 
-      {/* Toggle Consolidado/Individual — mobile (abaixo da nav, linha própria) */}
+      {/* Sheet "Mais" — resto das abas, só no mobile */}
+      {maisOpen && (
+        <div className="sheet-overlay" onClick={e=>e.target===e.currentTarget && setMaisOpen(false)}>
+          <div className="sheet">
+            <div className="sheet-handle"/>
+            <div className="sheet-title">Mais opções</div>
+            <div className="sheet-grid">
+              {TABS.filter(t=>!MOB_PRIMARY.includes(t.id)).map(t=>(
+                <button key={t.id} className={`sheet-item${tab===t.id?' on':''}`} onClick={()=>{setTab(t.id); setMaisOpen(false)}}>
+                  <span className="sheet-item-icon">{t.icon}</span>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toggle Consolidado/Individual — mobile (dropdown compacto) */}
       {membros.length>0 && (
         <div className="mob-user-toggle">
-          <button className={`tab${filtroUser===''?' on':''}`} onClick={()=>setFiltroUser('')}>Consolidado</button>
-          {membros.map(m=>(
-            <button key={m.id} className={`tab${filtroUser===m.id?' on':''}`} onClick={()=>setFiltroUser(m.id)}>{m.nome}</button>
-          ))}
+          <select value={filtroUser} onChange={e=>setFiltroUser(e.target.value)} className="fsel" style={{width:'100%'}}>
+            <option value="">👥 Consolidado</option>
+            {membros.map(m=><option key={m.id} value={m.id}>👤 {m.nome}</option>)}
+          </select>
         </div>
       )}
 
