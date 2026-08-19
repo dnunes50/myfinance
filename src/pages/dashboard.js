@@ -34,10 +34,11 @@ const TABS = [
   {id:'orcamento',   label:'Orçamento',   icon:'💼'},
 ]
 
-function calcBancos(lancs) {
+function calcBancos(lancs, incluirBase = true) {
   return BANCOS_CONFIG.map(b => {
     const movs  = lancs.filter(l => l.banco===b.nome && l.status==='Realizado' && l.data>b.data_abertura)
-    const valor = b.saldo_abertura + movs.reduce((s,l) => l.fluxo==='Entrada' ? s+l.valor : s-l.valor, 0)
+    const delta = movs.reduce((s,l) => l.fluxo==='Entrada' ? s+l.valor : s-l.valor, 0)
+    const valor = (incluirBase ? b.saldo_abertura : 0) + delta
     return { ...b, valor }
   })
 }
@@ -134,7 +135,7 @@ function DashboardInner() {
   }
 
   const lancsView = filtroUser ? lancs.filter(l => l.user_id === filtroUser) : lancs
-  const bancos    = calcBancos(lancsView) // saldo respeita o filtro individual/consolidado
+  const bancos    = calcBancos(lancsView, !filtroUser) // base inicial só entra no consolidado
   const fornHist  = [...new Set(lancsView.map(l=>l.fornecedor).filter(Boolean))]
 
   if(loading) return (
