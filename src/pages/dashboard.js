@@ -133,8 +133,8 @@ function DashboardInner() {
     router.replace('/login')
   }
 
-  const bancos    = calcBancos(lancs) // saldo bancário sempre consolidado
   const lancsView = filtroUser ? lancs.filter(l => l.user_id === filtroUser) : lancs
+  const bancos    = calcBancos(lancsView) // saldo respeita o filtro individual/consolidado
   const fornHist  = [...new Set(lancsView.map(l=>l.fornecedor).filter(Boolean))]
 
   if(loading) return (
@@ -224,7 +224,7 @@ function DashboardInner() {
         {tab==='lancamentos' && <TabLancamentos  {...shared}/>}
         {tab==='alertas'     && <TabAlertas      {...shared}/>}
         {tab==='fluxo'       && <TabFluxo        {...shared}/>}
-        {tab==='patrimonio'  && <TabPatrimonio   {...shared} lancs={lancs}/>}
+        {tab==='patrimonio'  && <TabPatrimonio   {...shared}/>}
         {tab==='orcamento'   && <TabOrcamento    {...shared}/>}
       </div>
     </div>
