@@ -3,7 +3,7 @@ import Modal from './Modal'
 import { FORNECEDORES, dateToMes, gerarDatasRecorrencia } from '../lib/constantes'
 
 const DEFAULT = {
-  data: '', mes:'', plano: '', tipo: 'Receita', banco: '',
+  data: '', mes:'', plano: '', grupo: '', tipo: 'Receita', banco: '',
   descricao:'', fornecedor:'', valor:'', status:'A Realizar', fluxo:'Saída'
 }
 
@@ -20,7 +20,11 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
 
   useEffect(() => {
     if(!open) return
-    if(mode==='novo') { setForm({...DEFAULT, plano:categoriasOpts[0]||'', banco:bancosOpts[0]||'', data: new Date().toISOString().slice(0,10), user_id: userId}); setRec(false) }
+    if(mode==='novo') {
+      const defPlano = categoriasOpts[0]||''
+      const cat = categoriasDb.find(c=>c.nome===defPlano)
+      setForm({...DEFAULT, plano:defPlano, grupo:cat?.grupo||'', banco:bancosOpts[0]||'', data: new Date().toISOString().slice(0,10), user_id: userId}); setRec(false)
+    }
     else if(lanc) {
       if(mode==='duplicar') {
         const d = new Date(lanc.data+'T00:00:00'); d.setMonth(d.getMonth()+1)
@@ -32,7 +36,15 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
     }
   }, [open, mode, lanc])
 
-  const set = (k, v) => setForm(f => ({...f, [k]:v}))
+  const set = (k, v) => {
+    setForm(f => {
+      if (k === 'plano') {
+        const cat = categoriasDb.find(c => c.nome === v)
+        return { ...f, plano: v, grupo: cat?.grupo || f.grupo || '' }
+      }
+      return { ...f, [k]: v }
+    })
+  }
 
   const previewRec = () => {
     if(!rec || !form.data) return ''

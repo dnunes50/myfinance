@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { sb } from '../lib/supabase'
-import { getLancamentos, criarLancamento, criarLancamentos, editarLancamento, excluirLancamento, getOrcamento, salvarOrcamento, getMembros, getBancos, criarBanco, editarBanco, excluirBanco, getCategorias, criarCategoria, editarCategoria, excluirCategoria } from '../lib/db'
+import { getLancamentos, criarLancamento, criarLancamentos, editarLancamento, excluirLancamento, getOrcamento, salvarOrcamento, getMembros, getBancos, criarBanco, editarBanco, excluirBanco, getCategorias, criarCategoria, editarCategoria, excluirCategoria, reclassificarPorPlano } from '../lib/db'
 import { ToastProvider, useToast } from '../components/Toast'
 import ModalLancamento from '../components/ModalLancamento'
 import Modal from '../components/Modal'
@@ -34,6 +34,7 @@ const TABS = [
   {id:'orcamento',   label:'Orçamento',   icon:'💼'},
   {id:'bancos',      label:'Bancos',      icon:'🏛️'},
   {id:'categorias',  label:'Categorias',  icon:'🏷️'},
+  {id:'reclassificar',label:'Reclassificar',icon:'🔄'},
 ]
 
 function calcBancos(lancs, incluirBase = true, bancosCad = []) {
@@ -238,6 +239,7 @@ function DashboardInner() {
         {tab==='orcamento'   && <TabOrcamento    {...shared}/>}
         {tab==='bancos'      && <TabBancos       {...shared}/>}
         {tab==='categorias'  && <TabCategorias   {...shared}/>}
+        {tab==='reclassificar' && <TabReclassificar {...shared}/>}
       </div>
     </div>
   )
@@ -542,6 +544,7 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
               <th className="th-sort" onClick={()=>toggleSort('descricao')}>Descrição<SortIcon col="descricao"/></th>
               <th className="hide-mob">Fornecedor</th>
               <th className="hide-mob th-sort" onClick={()=>toggleSort('plano')}>Plano<SortIcon col="plano"/></th>
+              <th className="hide-mob">Grupo</th>
               <th className="hide-mob th-sort" onClick={()=>toggleSort('banco')}>Banco<SortIcon col="banco"/></th>
               <th className="th-sort" onClick={()=>toggleSort('status')}>Status<SortIcon col="status"/></th>
               <th>Fluxo</th>
@@ -551,13 +554,14 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
           </thead>
           <tbody>
             {filtered.length===0?(
-              <tr><td colSpan={9}><div className="empty"><div className="empty-icon">📋</div><p>Nenhum lançamento encontrado</p></div></td></tr>
+              <tr><td colSpan={10}><div className="empty"><div className="empty-icon">📋</div><p>Nenhum lançamento encontrado</p></div></td></tr>
             ):filtered.map(l=>(
               <tr key={l.id} className={flashId===l.id?'row-flash':''}>
                 <td style={{whiteSpace:'nowrap',fontSize:'12px'}}>{l.data.split('-').reverse().join('/')}</td>
                 <td style={{maxWidth:'160px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={l.descricao}>{l.descricao}</td>
                 <td className="hide-mob" style={{fontSize:'11px',color:'var(--txt2)',maxWidth:'120px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.fornecedor||'—'}</td>
                 <td className="hide-mob" style={{fontSize:'11px',color:'var(--txt2)'}}>{l.plano}</td>
+                <td className="hide-mob" style={{fontSize:'11px',color:'var(--txt2)'}}>{l.grupo||'—'}</td>
                 <td className="hide-mob">{l.banco}</td>
                 <td><span className={`bdg ${l.status==='Realizado'?'bdg-real':'bdg-pend'}`}>{l.status}</span></td>
                 <td><span className={`bdg ${l.fluxo==='Entrada'?'bdg-rec':'bdg-des'}`}>{l.fluxo}</span></td>
@@ -1352,6 +1356,64 @@ function TabCategorias({ categoriasDb, reloadCadastros }) {
           <button className="btn btn-p" onClick={salvar} disabled={saving}>{saving?'Salvando...':'Salvar'}</button>
         </div>
       </Modal>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB RECLASSIFICAR — atribui grupo em massa aos lançamentos por plano
+// ══════════════════════════════════════════════════════════════
+function TabReclassificar({ lancs, categoriasDb=[], reloadCadastros }) {
+  const { toast } = useToast()
+  const [pend, setPend] = useState({}) // { plano: grupoEscolhido }
+  const [saving, setSaving] = useState('')
+
+  const grupos = [...new Set(categoriasDb.map(c=>c.grupo).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'))
+  const catByNome = Object.fromEntries(categoriasDb.map(c=>[c.nome,c]))
+
+  // Planos usados no histórico de lançamentos (despesas), com contagem e grupo atual
+  const planos = (() => {
+    const map = {}
+    lancs.filter(l=>l.fluxo==='Saída').forEach(l=>{
+      const p = l.plano || '(sem plano)'
+      if(!map[p]) map[p] = { plano:p, n:0, grupoAtual: catByNome[p]?.grupo || null, temGrupoLanc: 0 }
+      map[p].n++
+      if(l.grupo) map[p].temGrupoLanc++
+    })
+    return Object.values(map).sort((a,b)=>a.plano.localeCompare(b.plano,'pt-BR'))
+  })()
+
+  async function aplicar(plano) {
+    const grupo = pend[plano]
+    if(!grupo) return
+    setSaving(plano)
+    try {
+      await reclassificarPorPlano(plano, grupo)
+      if(catByNome[plano]) await editarCategoria(catByNome[plano].id, {grupo})
+      toast(`✓ "${plano}" reclassificado para ${grupo}`)
+      await reloadCadastros()
+    } catch(e) { toast(e.message,'err') } finally { setSaving('') }
+  }
+
+  return (
+    <div>
+      <div style={{fontSize:'18px',fontWeight:700,marginBottom:'4px'}}>Reclassificar despesas por grupo</div>
+      <p style={{fontSize:'12px',color:'var(--mut)',marginBottom:'16px'}}>Escolha o grupo de cada plano — aplica em todos os lançamentos com esse plano de uma vez.</p>
+      <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+        {planos.map(p=>(
+          <div key={p.plano} style={{display:'flex',alignItems:'center',gap:'12px',background:'var(--sur)',border:'1px solid var(--brd)',borderRadius:'var(--rs)',padding:'12px 16px'}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:600,fontSize:'13px'}}>{p.plano}</div>
+              <div style={{fontSize:'11px',color:'var(--mut)'}}>{p.n} lançamento(s) · grupo atual: {p.grupoAtual||'—'}</div>
+            </div>
+            <input list="grupo-dl-reclass" style={{width:'220px'}} value={pend[p.plano] ?? p.grupoAtual ?? ''} onChange={e=>setPend(f=>({...f,[p.plano]:e.target.value}))} placeholder="Ex: Moradia"/>
+            <button className="btn btn-p btn-sm" disabled={saving===p.plano || !(pend[p.plano]||'').trim()} onClick={()=>aplicar(p.plano)}>
+              {saving===p.plano ? '...' : 'Aplicar'}
+            </button>
+          </div>
+        ))}
+      </div>
+      <datalist id="grupo-dl-reclass">{grupos.map(g=><option key={g} value={g}/>)}</datalist>
     </div>
   )
 }

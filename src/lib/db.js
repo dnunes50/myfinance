@@ -30,6 +30,11 @@ export async function excluirLancamento(id) {
   if (error) throw error
 }
 
+export async function reclassificarPorPlano(plano, grupo) {
+  const { error } = await sb.from('lancamentos').update({ grupo }).eq('plano', plano)
+  if (error) throw error
+}
+
 // ── Membros (multi-usuário) ─────────────────────────────────
 export async function getMembros() {
   const { data, error } = await sb.from('membros_myfinance').select('*')
