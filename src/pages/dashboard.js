@@ -961,7 +961,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[] }) {
               const prev  = i>0?evolucaoDinamica[i-1].pat:e.pat
               const vP    = i>0?((e.pat-prev)/prev*100):0
               const isNow = e.mes===mesAtual
-              const isFut = !isNow && Object.keys(MES_FIM).indexOf(e.mes) > Object.keys(MES_FIM).indexOf(mesAtual)
+              const isFut = !isNow && Object.keys(MES_FIM_GLOBAL).indexOf(e.mes) > Object.keys(MES_FIM_GLOBAL).indexOf(mesAtual)
               return(
                 <tr key={e.mes} style={{background:isNow?'rgba(110,231,183,.07)':'',opacity:isFut?.7:1}}>
                   <td style={{fontWeight:isNow?700:400,color:isNow?'var(--acc)':isFut?'var(--mut)':'var(--txt)',whiteSpace:'nowrap'}}>
