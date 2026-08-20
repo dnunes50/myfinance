@@ -357,8 +357,8 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
   const pct  = Math.min(100,pat/meta*100)
 
   const lancPeriodo = lancs.filter(l=>l.status==='Realizado'&&l.data>=de&&l.data<=ate)
-  const rec  = lancPeriodo.filter(l=>l.fluxo==='Entrada').reduce((s,l)=>s+l.valor,0)
-  const des  = lancPeriodo.filter(l=>l.fluxo==='Saída').reduce((s,l)=>s+l.valor,0)
+  const rec  = lancPeriodo.filter(l=>l.fluxo==='Entrada'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)
+  const des  = lancPeriodo.filter(l=>l.fluxo==='Saída'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)
   const saldo= rec-des
   const txP  = rec>0?((rec-des)/rec*100):0
 
@@ -367,8 +367,8 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
   const dePrev  = new Date(new Date(de+'T00:00:00').getTime() - diasPeriodo*86400000).toISOString().slice(0,10)
   const atePrev = new Date(new Date(de+'T00:00:00').getTime() - 86400000).toISOString().slice(0,10)
   const lancPeriodoPrev = lancs.filter(l=>l.status==='Realizado'&&l.data>=dePrev&&l.data<=atePrev)
-  const recPrev = lancPeriodoPrev.filter(l=>l.fluxo==='Entrada').reduce((s,l)=>s+l.valor,0)
-  const desPrev = lancPeriodoPrev.filter(l=>l.fluxo==='Saída').reduce((s,l)=>s+l.valor,0)
+  const recPrev = lancPeriodoPrev.filter(l=>l.fluxo==='Entrada'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)
+  const desPrev = lancPeriodoPrev.filter(l=>l.fluxo==='Saída'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)
   const recVar  = recPrev>0 ? ((rec-recPrev)/recPrev*100) : null
   const desVar  = desPrev>0 ? ((des-desPrev)/desPrev*100) : null
   const aRec = lancs.filter(l=>l.status==='A Realizar'&&l.fluxo==='Entrada'&&l.data>=de&&l.data<=ate).reduce((s,l)=>s+l.valor,0)
@@ -435,9 +435,9 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
   })()
 
   // 5. Saldo livre real do mês: receita realizada − despesas realizadas − contas ainda a pagar
-  const recMes  = lancs.filter(l=>l.mes===mesAtualFiltro&&l.fluxo==='Entrada'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)
-  const desMes  = lancs.filter(l=>l.mes===mesAtualFiltro&&l.fluxo==='Saída'  &&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)
-  const pendMes = lancs.filter(l=>l.mes===mesAtualFiltro&&l.fluxo==='Saída'  &&l.status==='A Realizar').reduce((s,l)=>s+l.valor,0)
+  const recMes  = lancs.filter(l=>l.mes===mesAtualFiltro&&l.fluxo==='Entrada'&&l.status==='Realizado'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)
+  const desMes  = lancs.filter(l=>l.mes===mesAtualFiltro&&l.fluxo==='Saída'  &&l.status==='Realizado'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)
+  const pendMes = lancs.filter(l=>l.mes===mesAtualFiltro&&l.fluxo==='Saída'  &&l.status==='A Realizar'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)
   const saldoLivre = recMes - desMes - pendMes
   const totOrcado  = grupoStats.reduce((s,r)=>s+r.orcado,0)
   const totProj    = grupoStats.reduce((s,r)=>s+r.projetado,0)
@@ -490,10 +490,10 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
     const mF=ALL_MESES.filter(m=>{const[mm,yy]=m.split('/'),d1=`20${yy}-${mm}-01`,d2=`20${yy}-${mm}-31`;if(de&&d2<de)return false;if(ate&&d1>ate)return false;return true})
     chartsRef.current.rd?.destroy()
     const c2=document.getElementById('ch-rd')
-    if(c2) chartsRef.current.rd=new Chart(c2,{type:'bar',data:{labels:mF.map(m=>LAB_MAP[m]||m),datasets:[{label:'Receitas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Entrada'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(110,231,183,.7)',borderRadius:4,borderSkipped:false},{label:'Despesas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Saída'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(248,113,113,.7)',borderRadius:4,borderSkipped:false}]},options:{...defaults,plugins:{...defaults.plugins,tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.dataset.label}: R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}`}}}}})
+    if(c2) chartsRef.current.rd=new Chart(c2,{type:'bar',data:{labels:mF.map(m=>LAB_MAP[m]||m),datasets:[{label:'Receitas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Entrada'&&l.status==='Realizado'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(110,231,183,.7)',borderRadius:4,borderSkipped:false},{label:'Despesas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Saída'&&l.status==='Realizado'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(248,113,113,.7)',borderRadius:4,borderSkipped:false}]},options:{...defaults,plugins:{...defaults.plugins,tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.dataset.label}: R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}`}}}}})
     // 4. Top despesas por grupo (padronizado com o resto do app)
     const catD={}
-    lancs.filter(l=>l.fluxo==='Saída'&&l.data>=de&&l.data<=ate&&l.status==='Realizado').forEach(l=>{const g=l.grupo||'Sem grupo';catD[g]=(catD[g]||0)+l.valor})
+    lancs.filter(l=>l.fluxo==='Saída'&&l.data>=de&&l.data<=ate&&l.status==='Realizado'&&l.grupo!=='Transferências/Outros').forEach(l=>{const g=l.grupo||'Sem grupo';catD[g]=(catD[g]||0)+l.valor})
     const topD=Object.entries(catD).sort((a,b)=>b[1]-a[1]).slice(0,7)
     chartsRef.current.td?.destroy()
     const c4=document.getElementById('ch-td')
