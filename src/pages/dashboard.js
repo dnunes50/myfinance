@@ -1178,20 +1178,25 @@ function TabAnalise({ lancs, orcDb=[], categoriasDb=[] }) {
     const Chart=window.Chart; if(!Chart) return
     const tt={backgroundColor:'#1E2940',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#E8EDF5',bodyColor:'#A8B3C4',padding:10}
 
-    // 1. Barras empilhadas: despesa por grupo, mês a mês
+    // 1. Barras empilhadas: despesa por grupo, mês a mês + linha de receita
     chartsRef.current.st?.destroy()
     const cSt=document.getElementById('ch-an-stack')
     const gruposTop8 = stats.slice(0,8).map(s=>s.grupo)
+    const receitaPorMes = mesesRange.map(mes =>
+      lancs.filter(l=>l.mes===mes&&l.fluxo==='Entrada'&&l.status==='Realizado'&&l.grupo!=='Transferências/Outros').reduce((s,l)=>s+l.valor,0)
+    )
     if(cSt) chartsRef.current.st = new Chart(cSt,{
-      type:'bar',
       data:{
         labels: mesesRange.map(m=>LAB_MAP[m]||m),
-        datasets: gruposTop8.map((g,i)=>({
-          label:g,
-          data:mesesRange.map(mes=>despesas.filter(l=>l.mes===mes&&l.grupo===g).reduce((s,l)=>s+l.valor,0)),
-          backgroundColor:CORES[i%CORES.length],
-          borderRadius:2,
-        }))
+        datasets: [
+          ...gruposTop8.map((g,i)=>({
+            type:'bar', label:g, order:1,
+            data:mesesRange.map(mes=>despesas.filter(l=>l.mes===mes&&l.grupo===g).reduce((s,l)=>s+l.valor,0)),
+            backgroundColor:CORES[i%CORES.length],
+            borderRadius:2, stack:'desp',
+          })),
+          { type:'line', label:'Receita', order:0, data:receitaPorMes, borderColor:'#6EE7B7', backgroundColor:'#6EE7B7', borderWidth:2.5, pointRadius:3, pointBackgroundColor:'#6EE7B7', tension:.3, fill:false },
+        ]
       },
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.dataset.label}: R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}`}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#8B95A8',font:{size:10}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8B95A8',font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}}}}
     })
@@ -1254,7 +1259,7 @@ function TabAnalise({ lancs, orcDb=[], categoriasDb=[] }) {
 
       {/* Gráficos */}
       <div className="chart-grid">
-        <div className="chart-card"><div className="chart-title">Despesas por grupo, mês a mês</div><div className="chart-sub">Top 8 grupos empilhados</div><div style={{position:'relative',height:'240px'}}><canvas id="ch-an-stack"/></div></div>
+        <div className="chart-card"><div className="chart-title">Despesas por grupo, mês a mês</div><div className="chart-sub">Barras = top 8 grupos · <span style={{color:'var(--acc)'}}>linha verde = receita do mês</span></div><div style={{position:'relative',height:'240px'}}><canvas id="ch-an-stack"/></div></div>
         <div className="chart-card">
           <div className="chart-title">Onde o dinheiro está alocado</div><div className="chart-sub">% do total gasto no período</div>
           <div style={{position:'relative',height:'200px'}}><canvas id="ch-an-donut"/></div>
