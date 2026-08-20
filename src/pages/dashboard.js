@@ -40,6 +40,7 @@ const TABS = [
   {id:'lancamentos', label:'Lançamentos', icon:'📋'},
   {id:'alertas',     label:'Alertas',     icon:'🔔'},
   {id:'fluxo',       label:'Fluxo',       icon:'📈'},
+  {id:'analise',     label:'Análise',     icon:'🔬'},
   {id:'patrimonio',  label:'Patrimônio',  icon:'🏦'},
   {id:'orcamento',   label:'Orçamento',   icon:'💼'},
   {id:'bancos',      label:'Bancos',      icon:'🏛️'},
@@ -333,6 +334,7 @@ function DashboardInner() {
         {tab==='lancamentos' && <TabLancamentos  {...shared}/>}
         {tab==='alertas'     && <TabAlertas      {...shared}/>}
         {tab==='fluxo'       && <TabFluxo        {...shared}/>}
+        {tab==='analise'     && <TabAnalise      {...shared}/>}
         {tab==='patrimonio'  && <TabPatrimonio   {...shared}/>}
         {tab==='orcamento'   && <TabOrcamento    {...shared}/>}
         {tab==='bancos'      && <TabBancos       {...shared}/>}
@@ -1109,6 +1111,179 @@ function TabFluxo({ lancs, mostrarBase, bancosDb=[] }) {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  )
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB ANÁLISE — visão consolidada: onde o dinheiro vai, por grupo e por mês
+// ══════════════════════════════════════════════════════════════
+function TabAnalise({ lancs, orcDb=[], categoriasDb=[] }) {
+  const chartsRef = useRef({})
+  const [rangeSel, setRangeSel] = useState('6m')
+  const CORES = ['#F87171','#FB923C','#FBBF24','#A78BFA','#60A5FA','#6EE7B7','#F472B6','#38BDF8','#C084FC','#FCA5A5']
+
+  const mesesRange = (() => {
+    const n = rangeSel==='3m'?3 : rangeSel==='6m'?6 : rangeSel==='12m'?12 : 24
+    const hojeIdx = MESES_RANGE.findIndex(m=>`${m.mm}/${m.yy}`===getMesAtualFiltro())
+    const ini = Math.max(0, hojeIdx-n+1)
+    return MESES_RANGE.slice(ini, hojeIdx+1).map(m=>`${m.mm}/${m.yy}`)
+  })()
+
+  const despesas = lancs.filter(l=>l.fluxo==='Saída'&&l.status==='Realizado'&&mesesRange.includes(l.mes)&&l.grupo && l.grupo!=='Transferências/Outros')
+
+  const porGrupo = {}
+  despesas.forEach(l=>{ porGrupo[l.grupo] = (porGrupo[l.grupo]||0) + l.valor })
+  const totalPeriodo = Object.values(porGrupo).reduce((s,v)=>s+v,0)
+
+  // Orçado total no período (soma do orçamento de cada mês do intervalo, por grupo)
+  const gruposComOrc = [...new Set(categoriasDb.filter(c=>c.tipo==='despesa'&&c.grupo).map(c=>c.grupo))]
+  const orcadoPorGrupo = {}
+  gruposComOrc.forEach(g=>{
+    const o = orcDb.find(x=>x.cat===g)
+    let total = 0
+    mesesRange.forEach(mes=>{
+      const [mm,yy] = mes.split('/')
+      const custom = o?.custom_meses?.[`20${yy}-${mm}`]
+      total += custom ?? o?.valor_default ?? 0
+    })
+    orcadoPorGrupo[g] = total
+  })
+
+  const grupos = [...new Set([...Object.keys(porGrupo), ...Object.keys(orcadoPorGrupo)])]
+  const stats = grupos.map((g,i)=>{
+    const realizado = porGrupo[g]||0
+    const orcado = orcadoPorGrupo[g]||0
+    const desvioPct = orcado>0 ? ((realizado-orcado)/orcado*100) : null
+    return { grupo:g, realizado, orcado, desvioPct, cor: CORES[i%CORES.length] }
+  }).sort((a,b)=>b.realizado-a.realizado)
+
+  const maiorDesvio = [...stats].filter(s=>s.orcado>0).sort((a,b)=>(b.desvioPct||0)-(a.desvioPct||0))
+  const topEstouros = maiorDesvio.filter(s=>s.desvioPct>0).slice(0,5)
+  const grupoTop = stats[0]
+  const mediaMensal = mesesRange.length ? totalPeriodo/mesesRange.length : 0
+
+  useEffect(()=>{
+    if(window.Chart){ renderCharts(); return }
+    const s=document.createElement('script')
+    s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
+    s.onload=renderCharts
+    document.head.appendChild(s)
+    return ()=>Object.values(chartsRef.current).forEach(c=>c?.destroy())
+  },[])
+  useEffect(()=>{ if(window.Chart) renderCharts() },[lancs,rangeSel,orcDb,categoriasDb])
+
+  function renderCharts(){
+    const Chart=window.Chart; if(!Chart) return
+    const tt={backgroundColor:'#1E2940',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#E8EDF5',bodyColor:'#A8B3C4',padding:10}
+
+    // 1. Barras empilhadas: despesa por grupo, mês a mês
+    chartsRef.current.st?.destroy()
+    const cSt=document.getElementById('ch-an-stack')
+    const gruposTop8 = stats.slice(0,8).map(s=>s.grupo)
+    if(cSt) chartsRef.current.st = new Chart(cSt,{
+      type:'bar',
+      data:{
+        labels: mesesRange.map(m=>LAB_MAP[m]||m),
+        datasets: gruposTop8.map((g,i)=>({
+          label:g,
+          data:mesesRange.map(mes=>despesas.filter(l=>l.mes===mes&&l.grupo===g).reduce((s,l)=>s+l.valor,0)),
+          backgroundColor:CORES[i%CORES.length],
+          borderRadius:2,
+        }))
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.dataset.label}: R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}`}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#8B95A8',font:{size:10}}},y:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8B95A8',font:{size:10},callback:v=>'R$'+Math.round(v/1000)+'k'}}}}
+    })
+
+    // 2. Donut de alocação
+    chartsRef.current.al?.destroy()
+    const cAl=document.getElementById('ch-an-donut')
+    if(cAl) chartsRef.current.al = new Chart(cAl,{type:'doughnut',data:{labels:stats.map(s=>s.grupo),datasets:[{data:stats.map(s=>s.realizado),backgroundColor:stats.map(s=>s.cor),borderColor:'#1E2940',borderWidth:3,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.label}: ${(ctx.raw/totalPeriodo*100).toFixed(1)}% (R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')})`}}}}})
+  }
+
+  return (
+    <div>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'16px',flexWrap:'wrap',gap:'10px'}}>
+        <div style={{fontSize:'18px',fontWeight:700}}>Análise de despesas</div>
+        <div style={{display:'flex',gap:'6px'}}>
+          {[['3m','3 meses'],['6m','6 meses'],['12m','12 meses'],['24m','Tudo']].map(([v,l])=>(
+            <button key={v} className={`btn btn-s btn-sm${rangeSel===v?' on':''}`} style={rangeSel===v?{background:'var(--acc-d)',color:'var(--acc)',borderColor:'rgba(110,231,183,.3)'}:{}} onClick={()=>setRangeSel(v)}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPIs rápidos */}
+      <div className="kpi-grid" style={{marginBottom:'20px'}}>
+        <div className="kpi" style={{'--ka':'var(--red)'}}>
+          <div className="kpi-lbl">Total gasto no período</div>
+          <div className="kpi-val" style={{color:'var(--red)'}}>{fmtS(totalPeriodo)}</div>
+          <div className="kpi-sub">{mesesRange.length} meses</div>
+        </div>
+        <div className="kpi" style={{'--ka':'var(--blue)'}}>
+          <div className="kpi-lbl">Média mensal</div>
+          <div className="kpi-val" style={{color:'var(--blue)'}}>{fmtS(mediaMensal)}</div>
+          <div className="kpi-sub">Por mês, no período</div>
+        </div>
+        <div className="kpi" style={{'--ka':'var(--amb)'}}>
+          <div className="kpi-lbl">Maior grupo de gasto</div>
+          <div className="kpi-val" style={{color:'var(--amb)',fontSize:'16px'}}>{grupoTop?.grupo||'—'}</div>
+          <div className="kpi-sub">{grupoTop?fmtS(grupoTop.realizado):''}</div>
+        </div>
+        <div className="kpi" style={{'--ka':topEstouros.length>0?'var(--red)':'var(--acc)'}}>
+          <div className="kpi-lbl">Maior desvio de orçamento</div>
+          <div className="kpi-val" style={{color:topEstouros.length>0?'var(--red)':'var(--acc)',fontSize:'16px'}}>{topEstouros[0]?topEstouros[0].grupo:'Nenhum'}</div>
+          <div className="kpi-sub">{topEstouros[0]?`+${topEstouros[0].desvioPct.toFixed(0)}% acima do orçado`:'Tudo dentro do orçamento'}</div>
+        </div>
+      </div>
+
+      {/* Ranking de desvios — bate o olho */}
+      {topEstouros.length>0 && (
+        <div className="card" style={{marginBottom:'20px'}}>
+          <div style={{fontSize:'13px',fontWeight:700,marginBottom:'12px'}}>🚨 Onde você mais estourou o orçamento</div>
+          {topEstouros.map(s=>(
+            <div key={s.grupo} style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 0',borderTop:'1px solid var(--brd)'}}>
+              <span style={{width:'8px',height:'8px',borderRadius:'50%',background:s.cor,flexShrink:0}}/>
+              <span style={{flex:1,fontSize:'12px',fontWeight:600}}>{s.grupo}</span>
+              <span style={{fontSize:'11px',color:'var(--mut)'}}>{fmtS(s.realizado)} / {fmtS(s.orcado)}</span>
+              <span style={{fontSize:'12px',fontWeight:700,color:'var(--red)',minWidth:'50px',textAlign:'right'}}>+{s.desvioPct.toFixed(0)}%</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Gráficos */}
+      <div className="chart-grid">
+        <div className="chart-card"><div className="chart-title">Despesas por grupo, mês a mês</div><div className="chart-sub">Top 8 grupos empilhados</div><div style={{position:'relative',height:'240px'}}><canvas id="ch-an-stack"/></div></div>
+        <div className="chart-card">
+          <div className="chart-title">Onde o dinheiro está alocado</div><div className="chart-sub">% do total gasto no período</div>
+          <div style={{position:'relative',height:'200px'}}><canvas id="ch-an-donut"/></div>
+        </div>
+      </div>
+
+      {/* Orçado x Real por grupo, ordenado pelo maior desvio */}
+      <div className="card" style={{marginTop:'4px'}}>
+        <div style={{fontSize:'13px',fontWeight:700,marginBottom:'14px'}}>Orçado × Real por grupo — período todo</div>
+        {stats.length===0 && <div className="empty"><p>Sem despesas no período selecionado</p></div>}
+        {stats.map(s=>{
+          const pct = s.orcado>0 ? Math.min(100, s.realizado/s.orcado*100) : 100
+          const estourou = s.orcado>0 && s.realizado>s.orcado
+          const cor = s.orcado===0 ? 'var(--mut)' : estourou ? 'var(--red)' : 'var(--acc)'
+          return (
+            <div key={s.grupo} style={{marginBottom:'14px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:'12px',marginBottom:'5px',gap:'8px'}}>
+                <span style={{fontWeight:600}}>{s.grupo}</span>
+                <span style={{color:'var(--mut)',fontSize:'11px'}}>
+                  <strong style={{color:cor}}>{fmtS(s.realizado)}</strong>
+                  {s.orcado>0 ? ` / ${fmtS(s.orcado)} (${(s.realizado/totalPeriodo*100).toFixed(1)}% do total)` : ` — sem orçamento (${(s.realizado/totalPeriodo*100).toFixed(1)}% do total)`}
+                </span>
+              </div>
+              <div style={{background:'var(--bg)',borderRadius:'99px',height:'8px',overflow:'hidden'}}>
+                <div style={{width:`${pct}%`,height:'100%',background:cor,borderRadius:'99px',transition:'width .4s'}}/>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
