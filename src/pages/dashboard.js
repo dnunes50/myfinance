@@ -58,7 +58,7 @@ function MultiSelect({ label, options, value, onChange, allLabel='Todos' }) {
     return () => document.removeEventListener('mousedown', h)
   }, [])
   const toggle = v => onChange(value.includes(v) ? value.filter(x=>x!==v) : [...value, v])
-  const texto = value.length===0 ? allLabel : value.length===1 ? value[0] : `${value.length} selecionados`
+  const texto = value.length===0 ? allLabel : value.length===options.length ? allLabel : value.length===1 ? value[0] : `${value.length} selecionados`
   return (
     <div ref={ref} style={{position:'relative'}}>
       <button type="button" className="fsel" onClick={()=>setOpen(o=>!o)} style={{display:'flex',alignItems:'center',gap:'6px',cursor:'pointer'}}>
@@ -66,7 +66,10 @@ function MultiSelect({ label, options, value, onChange, allLabel='Todos' }) {
       </button>
       {open && (
         <div style={{position:'absolute',top:'calc(100% + 4px)',left:0,zIndex:60,background:'var(--bg2)',border:'1px solid var(--brd2)',borderRadius:'var(--rs)',padding:'8px',minWidth:'200px',maxHeight:'260px',overflowY:'auto',boxShadow:'0 8px 24px rgba(0,0,0,.4)'}}>
-          {value.length>0 && <button className="btn btn-s btn-sm" style={{width:'100%',marginBottom:'6px'}} onClick={()=>onChange([])}>Limpar seleção</button>}
+          <div style={{display:'flex',gap:'6px',marginBottom:'6px'}}>
+            <button className="btn btn-s btn-sm" style={{flex:1}} onClick={()=>onChange(options)}>Selecionar tudo</button>
+            <button className="btn btn-s btn-sm" style={{flex:1}} onClick={()=>onChange([])}>Limpar</button>
+          </div>
           {options.map(o=>(
             <label key={o} style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 4px',fontSize:'12px',cursor:'pointer'}}>
               <input type="checkbox" checked={value.includes(o)} onChange={()=>toggle(o)}/>
@@ -488,15 +491,6 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
     chartsRef.current.rd?.destroy()
     const c2=document.getElementById('ch-rd')
     if(c2) chartsRef.current.rd=new Chart(c2,{type:'bar',data:{labels:mF.map(m=>LAB_MAP[m]||m),datasets:[{label:'Receitas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Entrada'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(110,231,183,.7)',borderRadius:4,borderSkipped:false},{label:'Despesas',data:mF.map(m=>lancs.filter(l=>l.mes===m&&l.fluxo==='Saída'&&l.status==='Realizado').reduce((s,l)=>s+l.valor,0)),backgroundColor:'rgba(248,113,113,.7)',borderRadius:4,borderSkipped:false}]},options:{...defaults,plugins:{...defaults.plugins,tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.dataset.label}: R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')}`}}}}})
-    // 3. Alocação donut
-    const cls={Caixa:0,Internacional:0,Cripto:0}
-    bancos.forEach(b=>{ if(b.classe==='Caixa')cls.Caixa+=b.valor; else if(b.classe==='Investimento Internacional')cls.Internacional+=b.valor; else if(b.classe==='Cripto')cls.Cripto+=b.valor; else cls.Caixa+=b.valor })
-    const ae=Object.entries(cls).filter(([,v])=>v>0),at=ae.reduce((s,[,v])=>s+v,0),ac=['#60A5FA','#6EE7B7','#A78BFA']
-    chartsRef.current.al?.destroy()
-    const c3=document.getElementById('ch-al')
-    if(c3) chartsRef.current.al=new Chart(c3,{type:'doughnut',data:{labels:ae.map(([k])=>k),datasets:[{data:ae.map(([,v])=>v),backgroundColor:ac,borderColor:'#1E2940',borderWidth:3,hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{...tt,callbacks:{label:ctx=>` ${ctx.label}: ${(ctx.raw/at*100).toFixed(1)}% (R$ ${Math.round(ctx.raw).toLocaleString('pt-BR')})`}}}}})
-    const leg=document.getElementById('ch-al-leg')
-    if(leg) leg.innerHTML=ae.map(([l],i)=>`<div style="display:flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:9px;height:9px;border-radius:2px;background:${ac[i]};display:inline-block"></span><span style="color:var(--txt2)">${l}</span><span style="color:var(--mut)">${(ae[i][1]/at*100).toFixed(1)}%</span></div>`).join('')
     // 4. Top despesas por grupo (padronizado com o resto do app)
     const catD={}
     lancs.filter(l=>l.fluxo==='Saída'&&l.data>=de&&l.data<=ate&&l.status==='Realizado').forEach(l=>{const g=l.grupo||'Sem grupo';catD[g]=(catD[g]||0)+l.valor})
@@ -672,16 +666,7 @@ function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal
         <div className="chart-card"><div className="chart-title">Receitas vs Despesas</div><div className="chart-sub">Por mês — realizados</div><div style={{position:'relative',height:'220px'}}><canvas id="ch-rd"/></div></div>
       </div>
       <div className="chart-grid">
-        <div className="chart-card">
-          <div className="chart-title">Alocação do patrimônio</div><div className="chart-sub">Por classe de ativo</div>
-          <div style={{display:'flex',alignItems:'center',gap:'20px'}}>
-            <div style={{position:'relative',height:'190px',flex:1}}><canvas id="ch-al"/></div>
-            <div id="ch-al-leg" style={{fontSize:'11px',lineHeight:'2.2',flexShrink:0,minWidth:'110px'}}/>
-          </div>
-        </div>
         <div className="chart-card"><div className="chart-title">Top despesas por grupo</div><div className="chart-sub">No período selecionado</div><div style={{position:'relative',height:'190px'}}><canvas id="ch-td"/></div></div>
-      </div>
-      <div className="chart-grid">
         <div className="chart-card">
           <div className="chart-title">Pra onde foi o dinheiro</div><div className="chart-sub">Despesas por grupo — % do período</div>
           <div style={{display:'flex',alignItems:'center',gap:'20px'}}>
