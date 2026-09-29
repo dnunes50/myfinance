@@ -37,6 +37,11 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
     }
   }, [open, mode, lanc])
 
+  // userId chega assíncrono (auth) — preenche se o form abriu antes
+  useEffect(() => {
+    if(open && userId && !form.user_id && mode!=='editar') setForm(f => ({...f, user_id: userId}))
+  }, [userId, open])
+
   const set = (k, v) => {
     setForm(f => {
       if (k === 'plano') {
@@ -132,7 +137,8 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
       {membros.length>0 && (
         <div className="fld">
           <label>Usuário</label>
-          <select value={form.user_id||''} onChange={e=>set('user_id',e.target.value)}>
+          <select value={membros.some(m=>m.id===form.user_id) ? form.user_id : ''} onChange={e=>set('user_id',e.target.value)}>
+            <option value="" disabled>— selecione —</option>
             {membros.map(m=><option key={m.id} value={m.id}>{m.nome}</option>)}
           </select>
         </div>

@@ -171,6 +171,8 @@ function DashboardInner() {
   }
 
   async function handleSave(lista, editId) {
+    // garante dono em todo lançamento novo (user_id vazio some das visões individuais)
+    if(editId===undefined) lista = lista.map(l => ({...l, user_id: l.user_id || userId || null}))
     try {
       if(editId!==undefined) {
         const updated = await editarLancamento(editId, lista[0])
