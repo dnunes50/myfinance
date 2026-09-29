@@ -24,7 +24,7 @@ export default function ModalLancamento({ open, onClose, mode, lanc, onSave, for
     if(mode==='novo') {
       const defPlano = categoriasOpts[0]||''
       const cat = categoriasDb.find(c=>c.nome===defPlano)
-      setForm({...DEFAULT, plano:defPlano, grupo:cat?.grupo||'', banco:bancosOpts[0]||'', data: new Date().toISOString().slice(0,10), user_id: userId}); setRec(false)
+      setForm({...DEFAULT, plano:defPlano, grupo:cat?.grupo||'', banco:bancosOpts[0]||'', data: new Date().toLocaleDateString('sv-SE'), user_id: userId}); setRec(false)
     }
     else if(lanc) {
       if(mode==='duplicar') {

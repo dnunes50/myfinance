@@ -85,7 +85,7 @@ function MultiSelect({ label, options, value, onChange, allLabel='Todos' }) {
 }
 function calcBancos(lancs, incluirBase = true, bancosCad = []) {
   return bancosCad.map(b => {
-    const movs  = lancs.filter(l => l.banco===b.nome && l.status==='Realizado' && l.data>b.data_abertura)
+    const movs  = lancs.filter(l => l.banco===b.nome && (!b.user_id || l.user_id===b.user_id) && l.status==='Realizado' && l.data>b.data_abertura)
     const delta = movs.reduce((s,l) => l.fluxo==='Entrada' ? s+l.valor : s-l.valor, 0)
     const valor = (incluirBase ? b.saldo_abertura : 0) + delta
     return { ...b, valor }
@@ -98,11 +98,11 @@ function calcEvolucaoDinamica(lancs, bancosCad, mostrarBase) {
   return Object.entries(MES_FIM_GLOBAL).map(([mes, fim]) => {
     const s = {}
     bancosCad.forEach(b => {
-      const movs  = lancs.filter(l => l.banco===b.nome && l.status==='Realizado' && l.data>b.data_abertura && l.data<=fim)
-      const aReal = lancs.filter(l => l.banco===b.nome && l.status==='A Realizar' && l.data>b.data_abertura && l.data<=fim)
+      const movs  = lancs.filter(l => l.banco===b.nome && (!b.user_id || l.user_id===b.user_id) && l.status==='Realizado' && l.data>b.data_abertura && l.data<=fim)
+      const aReal = lancs.filter(l => l.banco===b.nome && (!b.user_id || l.user_id===b.user_id) && l.status==='A Realizar' && l.data>b.data_abertura && l.data<=fim)
       const deltaReal = movs.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
       const deltaProj = aReal.reduce((t,l) => l.fluxo==='Entrada'?t+l.valor:t-l.valor, 0)
-      s[b.nome] = Math.round(((mostrarBase?b.saldo_abertura:0) + deltaReal + deltaProj)*100)/100
+      s[b.nome] = Math.round(((s[b.nome]||0) + (mostrarBase?b.saldo_abertura:0) + deltaReal + deltaProj)*100)/100
     })
     const pat = Math.round(Object.values(s).reduce((t,v)=>t+v,0)*100)/100
     return { mes, saldos:s, pat }
@@ -351,7 +351,7 @@ function DashboardInner() {
 // TAB DASHBOARD
 // ══════════════════════════════════════════════════════════════
 function TabDashboard({ lancs, bancos, mostrarBase, bancosFiltered=[], metaTotal=1000000, orcDb=[], categoriasDb=[] }) {
-  const hoje = new Date().toISOString().slice(0,10)
+  const hoje = new Date().toLocaleDateString('sv-SE')
   const chartsRef = useRef({})
   const [de,  setDe]  = useState(()=>{ const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10) })
   const [ate, setAte] = useState(()=>{ const d=new Date(); return `${d.getFullYear()}-12-31` })
@@ -762,7 +762,7 @@ function TabLancamentos({ lancs, fornHist, flashId, onSave, onDelete, filtroMes,
     const rRows=planos.map(p=>{const vals=meses.map(m=>lancs.filter(l=>l.plano===p&&l.mes===m&&l.status==='Realizado').reduce((s,l)=>s+(l.fluxo==='Entrada'?l.valor:-l.valor),0));return[p,...vals,vals.reduce((s,v)=>s+v,0)]}).filter(r=>r.slice(1).some(v=>v!==0))
     const ws2=XLSX.utils.aoa_to_sheet([rHeaders,...rRows])
     XLSX.utils.book_append_sheet(wb,ws2,'Resumo Mensal')
-    XLSX.writeFile(wb,`myfinance-${new Date().toISOString().slice(0,10)}.xlsx`)
+    XLSX.writeFile(wb,`myfinance-${new Date().toLocaleDateString('sv-SE')}.xlsx`)
   }
 
   async function del(id) {
@@ -867,7 +867,7 @@ function TabAlertas({ lancs, onSave, onDelete, membros, userId, bancosDb, catego
   const [filtro, setFiltro] = useState('90dias')
   const [modal,  setModal]  = useState({open:false,lanc:null})
 
-  const hoje = new Date().toISOString().slice(0,10)
+  const hoje = new Date().toLocaleDateString('sv-SE')
 
   const { deStr, ateStr, label } = (()=>{
     if(filtro==='90dias'){const fim=new Date();fim.setDate(fim.getDate()+90);return{deStr:'2000-01-01',ateStr:fim.toISOString().slice(0,10),label:'Próximos 90 dias'}}
@@ -946,7 +946,7 @@ function TabAlertas({ lancs, onSave, onDelete, membros, userId, bancosDb, catego
 // TAB FLUXO — FIX 8: monthly summary
 // ══════════════════════════════════════════════════════════════
 function TabFluxo({ lancs, mostrarBase, bancosDb=[] }) {
-  const hoje = new Date().toISOString().slice(0,10)
+  const hoje = new Date().toLocaleDateString('sv-SE')
   const ULTIMA_REF = Object.keys(SALDOS_REF).sort().pop()
   const BANCO_CAMPO = {'C6 Bank':'c6','Nubank':'nubank','Onil':'onil','Santander':'san','Clear':'clear','Binance':'bin'}
   const [banco, setBanco] = useState('')
@@ -1403,7 +1403,7 @@ function TabPatrimonio({ bancos, lancs, mostrarBase, bancosFiltered=[], metaTota
 // ══════════════════════════════════════════════════════════════
 function TabOrcamento({ lancs, orcDb, onSaveOrcamento, categoriasDb=[] }) {
   const { toast } = useToast()
-  const hoje = new Date().toISOString().slice(0,10)
+  const hoje = new Date().toLocaleDateString('sv-SE')
   const [mesesSel, setMesesSel] = useState([getMesAtualFiltro()])
   const [modalOrc, setModalOrc] = useState(false)
   const [editVals, setEditVals] = useState({})
@@ -1614,7 +1614,7 @@ function TabBancos({ bancosDb, reloadCadastros, membros=[], userId }) {
   const [modal, setModal] = useState({open:false, item:null})
   const [saving, setSaving] = useState(false)
 
-  const DEFAULT = { nome:'', saldo_abertura:'', data_abertura:new Date().toISOString().slice(0,10), classe:'Caixa', cor:'#8B5CF6', ordem:0, user_id:userId||'' }
+  const DEFAULT = { nome:'', saldo_abertura:'', data_abertura:new Date().toLocaleDateString('sv-SE'), classe:'Caixa', cor:'#8B5CF6', ordem:0, user_id:userId||'' }
   const [form, setForm] = useState(DEFAULT)
   const set = (k,v) => setForm(f=>({...f,[k]:v}))
 
