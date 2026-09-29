@@ -2,9 +2,18 @@ import { sb } from './supabase'
 
 // ── Lançamentos ──────────────────────────────────────────────
 export async function getLancamentos() {
-  const { data, error } = await sb.from('lancamentos').select('*').order('data', { ascending: false })
-  if (error) throw error
-  return data || []
+  // PostgREST limita 1000 linhas por request — paginar para trazer tudo
+  const PAGE = 1000
+  let todos = []
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await sb.from('lancamentos').select('*')
+      .order('data', { ascending: false }).order('id', { ascending: true })
+      .range(from, from + PAGE - 1)
+    if (error) throw error
+    todos = todos.concat(data || [])
+    if (!data || data.length < PAGE) break
+  }
+  return todos
 }
 
 export async function criarLancamento(l) {
